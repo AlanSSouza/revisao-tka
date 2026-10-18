@@ -55,3 +55,16 @@ describe('db', () => {
     expect((await db.por('Ocorrencias', 'visita_id', 'v1')).map((o) => o.id)).toEqual(['o1']);
   });
 });
+
+describe('limparTudo', () => {
+  it('apaga dados e mantém o último nome', async () => {
+    await db.salvar('Visitas', { id: 'v1' }, { autor: 'A' });
+    await db.setMeta('ultimo_nome', 'Alan');
+    await db.setMeta('sessao', { autor: 'Alan' });
+    await db.limparTudo();
+    expect(await db.todos('Visitas')).toEqual([]);
+    expect(await db.outbox()).toEqual([]);
+    expect(await db.meta('sessao')).toBeUndefined();
+    expect(await db.meta('ultimo_nome')).toBe('Alan');
+  });
+});

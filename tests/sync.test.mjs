@@ -104,6 +104,14 @@ describe('sincronizar', () => {
     expect(acoes().filter((a) => a === 'pull').length).toBe(1);
   });
 
+  it('consulta remove Funcionarios guardados no aparelho', async () => {
+    await db.substituirTudo({ Funcionarios: [{ id: '1', nome: 'A' }] });
+    await db.setMeta('sessao', { autor: 'Eng', senha: 'con', papel: 'consulta' });
+    handler = (req) => (req.acao === 'pull' ? { ok: true, dados: { Equipamentos: [] } } : { ok: true });
+    await sincronizar();
+    expect(await db.todos('Funcionarios')).toEqual([]);
+  });
+
   it('pull atualiza dados locais', async () => {
     handler = (req) => (req.acao === 'pull' ? { ok: true, dados: { Equipamentos: [{ id: 'TSN5J65' }] } } : { ok: true });
     await sincronizar();

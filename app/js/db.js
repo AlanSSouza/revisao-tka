@@ -106,3 +106,13 @@ export async function atualizarLocal(tabela, registro) {
   tx.objectStore(tabela).put(registro);
   await fimTx(tx);
 }
+
+// Apaga todos os dados locais (usado ao sair da conta). Mantém só o último nome digitado.
+export async function limparTudo() {
+  const nome = await meta('ultimo_nome');
+  const nomes = [...TABELAS, 'outbox', 'blobs', 'meta'];
+  const tx = banco.transaction(nomes, 'readwrite');
+  for (const n of nomes) tx.objectStore(n).clear();
+  if (nome) tx.objectStore('meta').put({ k: 'ultimo_nome', v: nome });
+  await fimTx(tx);
+}

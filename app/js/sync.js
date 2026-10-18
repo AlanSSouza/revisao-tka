@@ -94,7 +94,10 @@ async function executar() {
       await enviarMidias();
     }
     const r = await chamar('pull');
-    await db.substituirTudo(r.dados || {});
+    const dados = r.dados || {};
+    // Acesso de consulta nunca guarda a lista de funcionários no aparelho (LGPD).
+    if (sessao?.papel !== 'registro') dados.Funcionarios = [];
+    await db.substituirTudo(dados);
     ultimoOk = new Date().toISOString();
     await db.setMeta('ultimo_pull', ultimoOk);
   } catch (e) {

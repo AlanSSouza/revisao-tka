@@ -1,6 +1,6 @@
 // Estrutura da planilha "Revisão TKA – Base" e operações de leitura/gravação.
 
-var META = ['atualizado_em', 'atualizado_por'];
+var META = ['removido', 'atualizado_em', 'atualizado_por'];
 
 var TABELAS = {
   Equipamentos: ['id', 'cod_placa', 'cod_renavam', 'cod_chassi', 'cidade', 'lotacao', 'tipo_veiculo', 'estado',
