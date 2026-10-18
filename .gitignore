@@ -1,0 +1,4 @@
+*.xlsx
+data/
+.superpowers/
+node_modules/
