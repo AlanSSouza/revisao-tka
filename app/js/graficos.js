@@ -22,11 +22,12 @@ export function barras(itens, { max = 8, cor = CORES.petroleo, titulo, largura: 
     lista = [...lista.slice(0, max), { rotulo: `Outros (${resto.length})`, valor: resto.reduce((s, i) => s + i.valor, 0), cor: CORES.cinza }];
   }
   const maior = Math.max(...lista.map((i) => i.valor));
-  const x0 = 132, area = L - x0 - 34, alt = 26;
+  const largo = L > 400;
+  const x0 = largo ? 250 : 132, area = L - x0 - 34, alt = 26;
   const corpo = lista.map((i, n) => {
     const y = n * alt;
     const w = Math.max(2, (i.valor / maior) * area);
-    return `<text x="0" y="${y + 17}" font-size="12.5" fill="${CORES.tinta}">${esc(cortar(i.rotulo, 21))}</text>`
+    return `<text x="0" y="${y + 17}" font-size="12.5" fill="${CORES.tinta}">${esc(cortar(i.rotulo, largo ? 40 : 21))}</text>`
       + `<rect class="barra" x="${x0}" y="${y + 5}" rx="3" height="16" width="${w.toFixed(1)}" fill="${i.cor || cor}"/>`
       + `<text x="${(x0 + w + 6).toFixed(1)}" y="${y + 17.5}" font-size="12.5" font-weight="700" fill="${CORES.tinta}">${i.valor}</text>`;
   }).join('');

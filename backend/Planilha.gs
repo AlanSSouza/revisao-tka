@@ -11,19 +11,21 @@ var TABELAS = {
   Funcionarios: ['id', 'matricula', 'nome', 'funcao', 'centro_custo', 'filial'].concat(META),
   Roteiro: ['id', 'data', 'ordem', 'placa', 'local_previsto', 'situacao', 'motivo'].concat(META),
   Visitas: ['id', 'placa', 'inicio', 'fim', 'lat', 'lng', 'precisao', 'autor', 'engenheiro', 'status', 'km',
-    'horimetro', 'serie_munck', 'observacoes', 'concluida'].concat(META),
-  Equipe: ['id', 'visita_id', 'matricula', 'nome', 'papel', 'avulso'].concat(META),
+    'horimetro', 'serie_munck', 'observacoes', 'concluida', 'prova_operador', 'prova_inspecao', 'prova_patolamento',
+    'prova_controle', 'prova_diagrama', 'prova_alarmes', 'prova_emergencia', 'dominio_operacao'].concat(META),
+  Equipe: ['id', 'visita_id', 'matricula', 'nome', 'papel', 'avulso', 'funcao'].concat(META),
   Ocorrencias: ['id', 'visita_id', 'placa', 'tipo', 'componente', 'gravidade', 'descricao', 'situacao', 'protocolo',
-    'abertura', 'previsao', 'solucao', 'resolvido_em', 'resolvido_por'].concat(META),
+    'abertura', 'previsao', 'solucao', 'resolvido_em', 'resolvido_por', 'relato', 'constatacao', 'causa', 'parecer_tka',
+    'impediu_operacao', 'horas_paradas'].concat(META),
   Treinamentos: ['id', 'visita_id', 'assunto', 'ministrante', 'duracao_min', 'observacoes'].concat(META),
-  TreinamentoParticipantes: ['id', 'treinamento_id', 'matricula', 'nome', 'assinatura_midia_id'].concat(META),
+  TreinamentoParticipantes: ['id', 'treinamento_id', 'matricula', 'nome', 'assinatura_midia_id', 'funcao'].concat(META),
   Midias: ['id', 'visita_id', 'ocorrencia_id', 'placa', 'tipo', 'legenda', 'nome_arquivo', 'mime', 'tamanho',
     'drive_id', 'link', 'criado_em', 'enviado_em'].concat(META)
 };
 
 // Colunas mantidas como número; as demais ficam como texto puro (o Sheets não converte datas nem matrículas).
 var NUMERICOS = ['km_atual', 'horimetro_atual', 'km_atual_campo', 'ordem', 'lat', 'lng', 'precisao', 'km',
-  'horimetro', 'duracao_min', 'tamanho', 'ano_modelo', 'ano_fabricacao'];
+  'horimetro', 'duracao_min', 'tamanho', 'ano_modelo', 'ano_fabricacao', 'horas_paradas'];
 
 function prop(k) { return PropertiesService.getScriptProperties().getProperty(k); }
 

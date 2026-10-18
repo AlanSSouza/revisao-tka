@@ -247,3 +247,18 @@ details.secao > .conteudo { padding: 0 16px 16px; }
 .nada { color: var(--tinta-suave); margin: 0; }
 .sub-ocorr { font-size: 14px; color: var(--tinta-suave); }
 @media (min-width: 720px) { .indicadores { grid-template-columns: repeat(4, 1fr); } }
+
+/* Prova prática */
+.tarefa-prova { border-top: 1px solid var(--linha); padding-top: 10px; }
+.selo-dominio { margin: 12px 0 0; font-weight: 700; padding: 10px 12px; border-radius: var(--raio-p); background: var(--nevoa); }
+.selo-dominio:empty { display: none; }
+.selo-dominio.verde { background: #E3F4EA; color: #146B3A; }
+.selo-dominio.amarelo { background: #FFF1DD; color: #8A4B00; }
+.selo-dominio.vermelho { background: #FDE7E5; color: #9E241B; }
+.nota { font-size: 14px; color: var(--tinta-suave); margin: 10px 0 0; }
+.prova-lista { list-style: none; padding: 0; margin: 10px 0 0; font-size: 14px; }
+.prova-lista li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-top: 1px solid var(--linha); }
+.prova-lista .r-executou strong { color: #146B3A; }
+.prova-lista .r-ajuda strong { color: #8A4B00; }
+.prova-lista .r-nao strong { color: #9E241B; }
+@media (min-width: 720px) { .indicadores { grid-template-columns: repeat(3, 1fr); } }

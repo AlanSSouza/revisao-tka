@@ -1,5 +1,8 @@
 // Números dos relatórios (geral e por placa), calculados a partir das tabelas locais. Sem DOM.
-import { STATUS, GRAVIDADES, SITUACOES_ABERTAS, verdadeiro, primeiroValor } from './modelo.js';
+import {
+  STATUS, GRAVIDADES, SITUACOES_ABERTAS, CAUSAS, CONSTATACOES, DOMINIOS, TAREFAS_PROVA,
+  verdadeiro, primeiroValor, grupoCausa, dominioOperacao, provaIniciada,
+} from './modelo.js';
 
 const ativos = (lista = []) => lista.filter((r) => !verdadeiro(r.removido));
 const porInicio = (a, b) => String(a.inicio).localeCompare(String(b.inicio));
@@ -43,6 +46,45 @@ function preparar(d) {
   };
 }
 
+const horas = (o) => Number(o.horas_paradas) || 0;
+
+function respaldo(p) {
+  const oc = p.ocorrencias;
+  const grupos = { equipamento: 0, operacao: 0, outras: 0, investigar: 0 };
+  const horasParadas = { total: 0, equipamento: 0, operacao: 0, outras: 0, investigar: 0, ocorrenciasQueImpediram: 0 };
+  for (const o of oc) {
+    const g = grupoCausa(o.causa);
+    grupos[g]++;
+    horasParadas[g] += horas(o);
+    horasParadas.total += horas(o);
+    if (verdadeiro(o.impediu_operacao)) horasParadas.ocorrenciasQueImpediram++;
+  }
+  // Domínio: a prova mais recente de cada máquina.
+  const comProva = p.visitas.filter(provaIniciada).sort(porInicio);
+  const ultimaProva = {};
+  for (const v of comProva) ultimaProva[v.placa] = v;
+  const dominioPlaca = Object.fromEntries(Object.entries(ultimaProva).map(([k, v]) => [k, dominioOperacao(v)]));
+  return {
+    porCausa: CAUSAS.map((c) => ({ v: c.v, rotulo: c.curto, valor: oc.filter((o) => (o.causa || 'investigar') === c.v).length })),
+    grupos,
+    porConstatacao: CONSTATACOES.map((c) => ({ v: c.v, rotulo: c.t, valor: oc.filter((o) => o.constatacao === c.v).length })),
+    parecer: {
+      concorda: oc.filter((o) => o.parecer_tka === 'concorda').length,
+      discorda: oc.filter((o) => o.parecer_tka === 'discorda').length,
+      sem: oc.filter((o) => !o.parecer_tka).length,
+    },
+    horasParadas,
+    provas: comProva.length,
+    porDominio: DOMINIOS.map((d) => ({ v: d.v, rotulo: d.curto, valor: Object.values(dominioPlaca).filter((x) => x === d.v).length })),
+    dificuldades: TAREFAS_PROVA.map((t) => {
+      const ajuda = comProva.filter((v) => v[t.k] === 'ajuda').length;
+      const nao = comProva.filter((v) => v[t.k] === 'nao').length;
+      return { k: t.k, rotulo: t.t, ajuda, nao, valor: ajuda + nao };
+    }).sort((a, b) => b.valor - a.valor),
+    dominioPlaca,
+  };
+}
+
 const unicos = (lista) => new Set(lista.map((p) => String(p.matricula || p.nome).trim()).filter(Boolean)).size;
 
 export function resumoGeral(d, hoje) {
@@ -78,7 +120,12 @@ export function resumoGeral(d, hoje) {
     };
   }).sort((a, b) => a.cidade.localeCompare(b.cidade) || a.placa.localeCompare(b.placa));
 
+  const rs = respaldo(p);
+  for (const l of linhas) l.dominio = rs.dominioPlaca[l.placa] || '';
+  const { dominioPlaca, ...extra } = rs;
+
   return {
+    ...extra,
     total: eqs.length,
     visitadas: eqs.filter((e) => visitadas.has(e.id)).length,
     porCidade: [...cidades.values()].sort((a, b) => b.total - a.total || a.rotulo.localeCompare(b.rotulo)),
@@ -102,6 +149,7 @@ export function relatorioPlaca(d, placa, hoje) {
   const ocorr = p.ocorrencias.filter((o) => o.placa === placa);
   const visitas = p.visitas.filter((v) => v.placa === placa).sort(porInicio).map((v) => ({
     ...v,
+    dominio: dominioOperacao(v),
     ocorrencias: ocorr.filter((o) => o.visita_id === v.id).map((o) => ({ ...o, midias: midias.filter((m) => m.ocorrencia_id === o.id) })),
     midiasVisita: midias.filter((m) => m.visita_id === v.id && !m.ocorrencia_id),
     equipe: p.equipe.filter((e) => e.visita_id === v.id),
@@ -116,6 +164,7 @@ export function relatorioPlaca(d, placa, hoje) {
     ocorrencias: ocorr,
     garantiasAbertas: ocorr.filter(abertaGarantia).map((o) => ({ ...o, dias: diasEntre(o.abertura || o.atualizado_em, hoje) })),
     alteracoes: p.alteracoes.filter((a) => a.placa === placa),
+    horasParadas: ocorr.reduce((s, o) => s + horas(o), 0),
     totalFotos: midias.filter((m) => m.tipo !== 'video').length,
     totalVideos: midias.filter((m) => m.tipo === 'video').length,
   };

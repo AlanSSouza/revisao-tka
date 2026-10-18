@@ -1,5 +1,8 @@
 // Relatório de uma placa: dados, garantias, cada visita com equipe, ocorrências, fotos e treinamentos. Exporta PDF.
-import { STATUS, GRAVIDADES, SITUACOES, PAPEIS, hojeLocal, formatarNumero, verdadeiro } from '../modelo.js';
+import {
+  STATUS, GRAVIDADES, SITUACOES, PAPEIS, CAUSAS, CONSTATACOES, PARECERES, DOMINIOS, TAREFAS_PROVA, RESULTADOS_PROVA,
+  hojeLocal, formatarNumero, verdadeiro, provaIniciada,
+} from '../modelo.js';
 import { relatorioPlaca } from '../relatorio.js';
 import { app, montar, h, placa, dataBR, vazio } from '../ui.js';
 import { galeria, rotulo, munckCurto } from './comum.js';
@@ -28,7 +31,11 @@ export async function render(el, { placa: id }) {
       ocorr.push(h('div', { class: 'ocorrencia' },
         o.gravidade ? h('span', { class: 'gravidade ' + o.gravidade }, rotulo(GRAVIDADES, o.gravidade)) : null, ' ',
         h('strong', {}, o.tipo || 'Ocorrência'), o.componente ? ` · ${o.componente}` : '',
-        o.descricao ? h('p', { style: 'margin:6px 0' }, o.descricao) : null,
+        o.relato ? h('p', { style: 'margin:6px 0' }, h('strong', {}, 'Relato: '), o.relato) : null,
+        o.descricao ? h('p', { style: 'margin:6px 0' }, h('strong', {}, 'Constatado: '), o.descricao) : null,
+        h('div', { class: 'sub-ocorr' }, [o.constatacao ? `Constatação: ${rotulo(CONSTATACOES, o.constatacao)}` : '', `Causa: ${rotulo(CAUSAS, o.causa || 'investigar')}`,
+          o.parecer_tka ? `TKA ${rotulo(PARECERES, o.parecer_tka).toLowerCase()}` : '', verdadeiro(o.impediu_operacao) ? 'impediu a operação' : '',
+          Number(o.horas_paradas) ? `${formatarNumero(o.horas_paradas)} h parado` : ''].filter(Boolean).join(' · ')),
         h('div', { class: 'sub-ocorr' }, [rotulo(SITUACOES, o.situacao) || 'Situação não informada', o.protocolo ? `protocolo ${o.protocolo}` : '',
           o.abertura ? `aberta ${dataBR(o.abertura)}` : '', o.resolvido_em ? `resolvida ${dataBR(o.resolvido_em)}` : ''].filter(Boolean).join(' · ')),
         o.solucao ? h('p', { style: 'margin:6px 0 0' }, h('strong', {}, 'Solução: '), o.solucao) : null,
@@ -40,7 +47,10 @@ export async function render(el, { placa: id }) {
         linha('Status', rotulo(STATUS, v.status)), linha('Registrada por', v.autor), linha('Engenheiro TKA', v.engenheiro),
         linha('KM', v.km !== '' && v.km != null ? num(v.km) : ''), linha('Horímetro', v.horimetro !== '' && v.horimetro != null ? num(v.horimetro, ' h') : ''),
         linha('Nº de série informado', v.serie_munck), linha('Observações', v.observacoes),
-        linha('Equipe', v.equipe.map((p) => `${p.nome}${p.matricula ? ` (${p.matricula})` : ''} · ${rotulo(PAPEIS, p.papel)}`).join('; ')))),
+        linha('Equipe', v.equipe.map((p) => `${p.nome}${p.matricula ? ` (${p.matricula})` : ''} · ${[rotulo(PAPEIS, p.papel), p.funcao].filter(Boolean).join(', ')}`).join('; ')),
+        linha('Domínio da operação', v.dominio ? `${rotulo(DOMINIOS, v.dominio)}${v.prova_operador ? ' · ' + v.prova_operador : ''}` : ''))),
+      provaIniciada(v) ? h('ul', { class: 'prova-lista' }, TAREFAS_PROVA.filter((t) => v[t.k]).map((t) =>
+        h('li', { class: 'r-' + v[t.k] }, h('span', {}, t.t), h('strong', {}, rotulo(RESULTADOS_PROVA, v[t.k]))))) : null,
       ocorr.length ? h('h3', {}, 'Ocorrências') : null, ...ocorr,
       v.midiasVisita.length ? [h('h3', {}, 'Fotos e vídeos da visita'), await galeria(v.midiasVisita)] : null,
       v.treinamentos.map((t) => h('p', { style: 'margin:10px 0 0' }, h('strong', {}, `Treinamento: ${t.assunto || 'sem assunto'}`),

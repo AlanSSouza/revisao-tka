@@ -122,3 +122,41 @@ describe('relatorioPlaca', () => {
     expect(r.totalVideos).toBe(1);
   });
 });
+
+describe('respaldo: causa, constatação, horas paradas e prova prática', () => {
+  const d = base();
+  Object.assign(d.Ocorrencias[0], { causa: 'defeito', constatacao: 'confirmado', parecer_tka: 'concorda', impediu_operacao: 'true', horas_paradas: 6 });
+  Object.assign(d.Ocorrencias[1], { causa: 'operacao', constatacao: 'nao_reproduzido', parecer_tka: 'concorda', impediu_operacao: 'false', horas_paradas: '' });
+  Object.assign(d.Ocorrencias[2], { causa: 'conhecimento', constatacao: 'parcial', impediu_operacao: 'true', horas_paradas: 2.5 });
+  Object.assign(d.Visitas[0], { prova_inspecao: 'executou', prova_controle: 'ajuda' });
+  Object.assign(d.Visitas[1], { prova_inspecao: 'executou', prova_controle: 'nao', prova_alarmes: 'ajuda' });
+  const r = resumoGeral(d, '2026-10-25');
+
+  it('causas e grupos (equipamento × operação)', () => {
+    expect(r.porCausa.find((c) => c.v === 'defeito').valor).toBe(1);
+    expect(r.grupos).toEqual({ equipamento: 1, operacao: 2, outras: 0, investigar: 0 });
+  });
+
+  it('constatação e parecer da TKA', () => {
+    expect(r.porConstatacao.map((c) => [c.v, c.valor])).toEqual([['confirmado', 1], ['parcial', 1], ['nao_reproduzido', 1]]);
+    expect(r.parecer).toEqual({ concorda: 2, discorda: 0, sem: 1 });
+  });
+
+  it('horas paradas por grupo de causa', () => {
+    expect(r.horasParadas).toEqual({ total: 8.5, equipamento: 6, operacao: 2.5, outras: 0, investigar: 0, ocorrenciasQueImpediram: 2 });
+  });
+
+  it('domínio pela última prova de cada máquina e tarefas com dificuldade', () => {
+    expect(r.porDominio.map((x) => [x.v, x.valor])).toEqual([['adequado', 0], ['parcial', 0], ['insuficiente', 1]]);
+    const controle = r.dificuldades.find((t) => t.k === 'prova_controle');
+    expect(controle).toMatchObject({ ajuda: 1, nao: 1, valor: 2 });
+    expect(r.provas).toBe(2);
+    expect(r.linhas.find((l) => l.placa === 'AAA1A11').dominio).toBe('insuficiente');
+  });
+
+  it('relatório da placa traz domínio de cada visita', () => {
+    const p = relatorioPlaca(d, 'AAA1A11', '2026-10-25');
+    expect(p.visitas.map((v) => v.dominio)).toEqual(['parcial', 'insuficiente']);
+    expect(p.horasParadas).toBe(6);
+  });
+});

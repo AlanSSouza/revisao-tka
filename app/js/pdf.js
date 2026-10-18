@@ -1,6 +1,10 @@
 // PDF dos relatórios (A4) com jsPDF, gerado no próprio aparelho: logo Mariuá no topo, selo GPTW no rodapé.
 import * as db from './db.js';
-import { STATUS, GRAVIDADES, SITUACOES, PAPEIS, formatarNumero, verdadeiro } from './modelo.js';
+import {
+  STATUS, GRAVIDADES, SITUACOES, PAPEIS, CAUSAS, CONSTATACOES, PARECERES, DOMINIOS, TAREFAS_PROVA, RESULTADOS_PROVA,
+  formatarNumero, verdadeiro, provaIniciada,
+} from './modelo.js';
+import { gruposCausa, coresConstatacao, coresDominio, pct } from './telas/relatorios.js';
 import { CORES, barras, rosca, colunasProgresso } from './graficos.js';
 import { urlDrive } from './midia.js';
 
@@ -306,9 +310,24 @@ export async function pdfGeral(r, { autor, filtro } = {}) {
   f.indicadores([
     [`${r.visitadas}/${r.total}`, 'máquinas visitadas'],
     [String(r.ocorrencias), 'ocorrências registradas'],
-    [String(r.garantias.abertas), 'garantias em aberto'],
-    [String(r.pessoasTreinadas), 'pessoas treinadas'],
+    [`${pct(r.grupos.equipamento, r.ocorrencias)}%`, 'por defeito do equipamento'],
   ]);
+  f.indicadores([
+    [`${pct(r.grupos.operacao, r.ocorrencias)}%`, 'por operação ou conhecimento'],
+    [`${num(Math.round(r.horasParadas.total * 10) / 10)} h`, 'paradas registradas'],
+    [String(r.garantias.abertas), 'garantias em aberto'],
+  ]);
+  const hh = (n) => num(Math.round(n * 10) / 10);
+  f.titulo2('Defeito do equipamento × operação', 60);
+  await f.par(['Ocorrências por grupo de causa', rosca(gruposCausa(r), { centro: 'ocorrências' })],
+    ['Causa provável', barras(r.porCausa)]);
+  f.paragrafo(`Horas paradas: ${hh(r.horasParadas.equipamento)} h por defeito do equipamento, ${hh(r.horasParadas.operacao)} h por operação/conhecimento e ${hh(r.horasParadas.outras + r.horasParadas.investigar)} h por outras causas ou a investigar. ${r.horasParadas.ocorrenciasQueImpediram} ocorrência(s) impediram a operação.`);
+  f.titulo2('Relato × constatação e domínio da operação', 60);
+  await f.par(['Defeito relatado foi constatado?', rosca(r.porConstatacao.map((c) => ({ ...c, cor: coresConstatacao[c.v] })), { centro: 'avaliadas' })],
+    ['Domínio da operação (última prova)', rosca(r.porDominio.map((d) => ({ ...d, cor: coresDominio[d.v] })), { centro: 'máquinas' })]);
+  f.paragrafo(`Parecer do engenheiro TKA sobre a causa: concorda em ${r.parecer.concorda}, discorda em ${r.parecer.discorda}, sem parecer em ${r.parecer.sem}. ${r.provas} prova(s) prática(s) aplicada(s).`);
+  f.titulo2('Tarefas com dificuldade na prova prática', 30);
+  await f.grafico(barras(r.dificuldades, { cor: CORES.laranja2, largura: 680 }));
   f.titulo2('Progresso das visitas por cidade');
   await f.grafico(colunasProgresso(r.porCidade, { largura: 680 }));
   f.titulo2('Situação do parque e gravidade', 60);
@@ -325,10 +344,10 @@ export async function pdfGeral(r, { autor, filtro } = {}) {
   f.titulo2('Treinamentos');
   f.paragrafo(`${r.treinamentos} treinamento(s) no local, ${r.pessoasTreinadas} pessoa(s) treinada(s). ${r.pessoasEquipe} pessoa(s) registradas nas equipes.`);
   f.titulo2('Situação por equipamento');
-  f.tabela([{ t: 'Placa', w: 16 }, { t: 'Cidade', w: 24 }, { t: 'Série Munck', w: 18 }, { t: 'KM', w: 13, dir: true }, { t: 'Horím.', w: 10, dir: true },
-    { t: 'Última visita', w: 15 }, { t: 'Status', w: 16 }, { t: 'Ocorr.', w: 9, dir: true }, { t: 'Abertas', w: 10, dir: true }],
+  f.tabela([{ t: 'Placa', w: 15 }, { t: 'Cidade', w: 20 }, { t: 'Série Munck', w: 16 }, { t: 'KM', w: 12, dir: true }, { t: 'Horím.', w: 9, dir: true },
+    { t: 'Última visita', w: 14 }, { t: 'Status', w: 14 }, { t: 'Domínio', w: 18 }, { t: 'Ocorr.', w: 8, dir: true }, { t: 'Abertas', w: 9, dir: true }],
   r.linhas.map((l) => [l.placa, l.cidade, l.serie || '-', num(l.km), num(l.horimetro), l.ultimaVisita ? dataHora(l.ultimaVisita, false) : 'Não visitada',
-    rotulo(STATUS, l.status) || '-', l.ocorrencias, l.abertas]), { tam: 7.8 });
+    rotulo(STATUS, l.status) || '-', rotulo(DOMINIOS, l.dominio) || '-', l.ocorrencias, l.abertas]), { tam: 7.5 });
   f.rodapes(autor);
   return f.doc.output('blob');
 }
@@ -347,7 +366,7 @@ export async function pdfPlaca(r, { autor } = {}) {
     [String(r.visitas.filter((v) => verdadeiro(v.concluida)).length), 'visitas concluídas'],
     [String(r.ocorrencias.length), 'ocorrências'],
     [String(r.garantiasAbertas.length), 'garantias em aberto'],
-    [`${r.totalFotos}/${r.totalVideos}`, 'fotos / vídeos'],
+    [`${num(r.horasParadas)} h`, 'paradas registradas'],
   ]);
   if (r.garantiasAbertas.length) {
     f.titulo2('Garantias em aberto');
@@ -360,15 +379,25 @@ export async function pdfPlaca(r, { autor } = {}) {
       ['Registrada por', v.autor], ['Engenheiro TKA', v.engenheiro], ['Status', rotulo(STATUS, v.status)],
       ['KM / horímetro', `${num(v.km)} / ${num(v.horimetro, ' h')}`], ['Nº de série informado', v.serie_munck],
       ['Localização', v.lat && v.lng ? `${Number(v.lat).toFixed(5)}, ${Number(v.lng).toFixed(5)}` : ''],
+      ['Domínio da operação', v.dominio ? rotulo(DOMINIOS, v.dominio) : ''], ['Operador avaliado', v.prova_operador],
     ]);
+    if (provaIniciada(v)) {
+      f.paragrafo('Prova prática: ' + TAREFAS_PROVA.filter((t) => v[t.k]).map((t) => `${t.t}: ${rotulo(RESULTADOS_PROVA, v[t.k])}`).join('; '), { tam: 9.5 });
+    }
     if (v.observacoes) f.paragrafo('Observações: ' + v.observacoes);
-    if (v.equipe.length) f.paragrafo('Equipe: ' + v.equipe.map((p) => `${p.nome}${p.matricula ? ' (' + p.matricula + ')' : ''} - ${rotulo(PAPEIS, p.papel)}`).join('; '), { tam: 9.5 });
+    if (v.equipe.length) f.paragrafo('Equipe: ' + v.equipe.map((p) => `${p.nome}${p.matricula ? ' (' + p.matricula + ')' : ''} - ${[rotulo(PAPEIS, p.papel), p.funcao].filter(Boolean).join(', ')}`).join('; '), { tam: 9.5 });
     for (const o of v.ocorrencias) {
       f.garantir(20);
       f.y += 1;
       f.doc.setFillColor(coresGravidade[o.gravidade] || CORES.cinza).rect(M, f.y, 1.4, 6, 'F');
       f.paragrafo(`${o.tipo || 'Ocorrência'}${o.componente ? ' - ' + o.componente : ''}${o.gravidade ? ' (' + rotulo(GRAVIDADES, o.gravidade) + ')' : ''}`, { negrito: true, tam: 10.5, x: M + 3.5 });
-      f.paragrafo(o.descricao, { x: M + 3.5, largura: LARG - 3.5 });
+      if (o.relato) f.paragrafo('Relato: ' + o.relato, { x: M + 3.5, largura: LARG - 3.5 });
+      if (o.descricao) f.paragrafo('Constatado na visita: ' + o.descricao, { x: M + 3.5, largura: LARG - 3.5 });
+      f.paragrafo([o.constatacao ? `Constatação: ${rotulo(CONSTATACOES, o.constatacao)}` : '', `Causa provável: ${rotulo(CAUSAS, o.causa || 'investigar')}`,
+        o.parecer_tka ? `Engenheiro TKA ${rotulo(PARECERES, o.parecer_tka).toLowerCase()}` : 'Sem parecer da TKA',
+        o.impediu_operacao !== '' && o.impediu_operacao != null ? (verdadeiro(o.impediu_operacao) ? 'Impediu a operação' : 'Não impediu a operação') : '',
+        Number(o.horas_paradas) ? `${num(o.horas_paradas)} h parado` : ''].filter(Boolean).join(' | '),
+      { tam: 9.5, negrito: true, cor: CORES.fundo, x: M + 3.5, largura: LARG - 3.5 });
       f.paragrafo([`Situação: ${rotulo(SITUACOES, o.situacao) || 'não informada'}`, o.protocolo ? `Protocolo: ${o.protocolo}` : '',
         o.abertura ? `Aberta em ${dataHora(o.abertura, false)}` : '', o.previsao ? `Previsão ${dataHora(o.previsao, false)}` : '',
         o.resolvido_em ? `Resolvida em ${dataHora(o.resolvido_em, false)}${o.resolvido_por ? ' por ' + o.resolvido_por : ''}` : ''].filter(Boolean).join(' | '),
@@ -382,7 +411,7 @@ export async function pdfPlaca(r, { autor } = {}) {
     }
     for (const t of v.treinamentos) {
       f.paragrafo(`Treinamento: ${t.assunto || 'sem assunto'}${t.duracao_min ? ' (' + t.duracao_min + ' min)' : ''}${t.ministrante ? ' - ministrado por ' + t.ministrante : ''}`, { negrito: true, tam: 10 });
-      if (t.participantes.length) f.paragrafo('Participantes: ' + t.participantes.map((p) => `${p.nome}${p.matricula ? ' (' + p.matricula + ')' : ''}`).join('; '), { tam: 9.5 });
+      if (t.participantes.length) f.paragrafo('Participantes: ' + t.participantes.map((p) => `${p.nome}${p.matricula ? ' (' + p.matricula + ')' : ''}${p.funcao ? ' - ' + p.funcao : ''}${p.assinatura_midia_id ? ', assinado' : ''}`).join('; '), { tam: 9.5 });
     }
   }
   if (!r.visitas.length) f.paragrafo('Nenhuma visita registrada ainda.', { cor: CORES.suave });

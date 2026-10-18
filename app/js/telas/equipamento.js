@@ -12,6 +12,11 @@ const CAMPOS = [
   ['ano_modelo', 'Ano do modelo'], ['des_cor', 'Cor'], ['cod_renavam', 'Renavam'], ['cod_chassi', 'Chassi'],
 ];
 const NUMERICOS = ['km_atual', 'ano_fabricacao', 'ano_modelo'];
+// Onde a máquina está alocada: editável à parte, no topo da ficha.
+const DISPOSICAO = [
+  ['cidade', 'Cidade'], ['estado', 'Estado'], ['lotacao', 'Lotação'], ['centro_custo', 'Centro de custo'],
+  ['setor_veiculo', 'Setor'], ['local_previsto', 'Local previsto'],
+];
 
 export async function render(el, { placa: id }) {
   const eq = await db.get('Equipamentos', id);
@@ -59,6 +64,41 @@ export async function render(el, { placa: id }) {
       h('div', { style: 'font-size:14px;color:var(--tinta-suave)' }, [rotulo(SITUACOES, o.situacao) || 'Situação não informada', o.protocolo ? `protocolo ${o.protocolo}` : '', o.abertura ? `aberta ${dataBR(o.abertura)}` : ''].filter(Boolean).join(' · ')))) :
       h('p', { style: 'color:var(--tinta-suave);margin:0' }, 'Nenhum defeito registrado.'));
 
+  // Disposição: leitura com valor original da planilha e edição rápida desses campos.
+  const blocoDisp = h('section', { class: 'bloco' });
+  const salvarCampos = async (campos, entradas) => {
+    const editado = { ...eq };
+    for (const [c] of campos) {
+      const v = entradas[c].value.trim();
+      editado[c] = NUMERICOS.includes(c) ? parseNumeroBR(v) : v;
+    }
+    const alt = alteracoesCadastro(eq, editado, app.sessao.autor);
+    if (!alt.length) return false;
+    for (const a of alt) await db.salvar('Alteracoes', a, { autor: app.sessao.autor });
+    await db.salvar('Equipamentos', editado, { autor: app.sessao.autor });
+    toast(`${alt.length} campo(s) alterado(s).`, 'ok');
+    render(el, { placa: id });
+    return true;
+  };
+  const dispLeitura = () => montar(blocoDisp, h('h2', {}, 'Disposição'),
+    h('table', { class: 'tabela-dados' }, h('tbody', {}, DISPOSICAO.map(([c, t]) => h('tr', {}, h('th', {}, t),
+      h('td', {}, String(eq[c] ?? '') || '—',
+        c in originais && String(originais[c]) !== String(eq[c] ?? '') ? h('span', { class: 'original' }, `Antes: ${originais[c] === '' ? '(vazio)' : originais[c]}`) : null))))),
+    edita ? h('button', { type: 'button', class: 'btn claro bloco-largo', style: 'margin-top:12px', onclick: dispEdicao }, 'Alterar disposição') : null);
+  const dispEdicao = () => {
+    const entradas = {};
+    montar(blocoDisp, h('h2', {}, 'Alterar disposição'),
+      DISPOSICAO.map(([c, t]) => {
+        entradas[c] = h('input', { type: 'text', value: String(eq[c] ?? '') });
+        return h('label', { class: 'campo' }, h('span', {}, t), entradas[c]);
+      }),
+      h('div', { class: 'acoes' },
+        h('button', { type: 'button', class: 'btn claro', onclick: dispLeitura }, 'Cancelar'),
+        h('button', { type: 'button', class: 'btn', onclick: async () => { if (!(await salvarCampos(DISPOSICAO, entradas))) dispLeitura(); } }, 'Salvar disposição')));
+    entradas.cidade.focus();
+  };
+  dispLeitura();
+
   const blocoMidia = h('section', { class: 'bloco' }, h('h2', {}, 'Fotos e vídeos ', h('span', { class: 'contagem' }, `(${midias.length})`)), await galeria(midias));
 
   // Dados cadastrais: leitura ou edição.
@@ -102,5 +142,5 @@ export async function render(el, { placa: id }) {
     h('header', { class: 'cab-tela' }, h('a', { class: 'voltar', href: '#/parque' }, '‹ Parque'),
       h('div', { style: 'display:flex;gap:14px;align-items:center' }, placa(id, true),
         h('div', {}, h('h1', { style: 'font-size:20px' }, eq.marca_modelo || ''), h('p', {}, `${munckCurto(eq)} · ${eq.cidade}`)))),
-    resumo, historico, blocoOcorr, blocoMidia, blocoDados);
+    resumo, blocoDisp, historico, blocoOcorr, blocoMidia, blocoDados);
 }

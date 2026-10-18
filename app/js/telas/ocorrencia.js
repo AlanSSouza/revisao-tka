@@ -1,6 +1,9 @@
 // Ocorrência (defeito): tipo, componente, gravidade, descrição, mídias e acompanhamento da garantia.
 import * as db from '../db.js';
-import { TIPOS_OCORRENCIA, COMPONENTES, GRAVIDADES, SITUACOES, SITUACOES_ABERTAS, hojeLocal } from '../modelo.js';
+import {
+  TIPOS_OCORRENCIA, COMPONENTES, GRAVIDADES, SITUACOES, SITUACOES_ABERTAS, CONSTATACOES, CAUSAS, PARECERES,
+  hojeLocal, parseNumeroBR, formatarNumero,
+} from '../modelo.js';
 import { app, montar, h, chips, campo, toast, confirmar, placa } from '../ui.js';
 import { autosave, ativos, galeria, botoesMidia, mensagemConsulta } from './comum.js';
 
@@ -27,6 +30,10 @@ export async function render(el, { id }) {
     COMPONENTES.map((c) => h('option', { value: c, selected: c === o.componente }, c)));
   const descricao = h('textarea', { disabled: !edita, placeholder: 'O que foi observado, quando acontece, em que condição de operação…',
     oninput: (e) => set('descricao', e.target.value) }, o.descricao || '');
+  const relato = h('textarea', { disabled: !edita, placeholder: 'O que a equipe ou o gestor disse sobre o problema, e quem disse',
+    oninput: (e) => set('relato', e.target.value) }, o.relato || '');
+  const horas = h('input', { type: 'text', inputmode: 'decimal', value: formatarNumero(o.horas_paradas), disabled: !edita,
+    placeholder: 'Ex.: 4,5', oninput: (e) => set('horas_paradas', parseNumeroBR(e.target.value)) });
 
   const garantia = h('div');
   const resolucao = h('div');
@@ -87,7 +94,22 @@ export async function render(el, { id }) {
       h('div', { class: 'campo' }, h('span', {}, 'Gravidade'),
         chips(GRAVIDADES.map((g) => ({ ...g, cor: COR_GRAVIDADE[g.v] })), o.gravidade, (x) => set('gravidade', x), { desabilitado: !edita }),
         h('small', {}, 'Crítica = impede a operação do equipamento.')),
-      campo('Descrição', descricao)),
+      campo('Relato da equipe ou do gestor', relato),
+      h('div', { class: 'campo' }, h('span', {}, 'Constatação na visita'),
+        chips(CONSTATACOES, o.constatacao, (x) => set('constatacao', x), { desabilitado: !edita, permitirVazio: true }),
+        h('small', {}, 'O defeito relatado apareceu na hora da visita?')),
+      campo('O que foi constatado', descricao)),
+    h('section', { class: 'bloco' },
+      h('h2', {}, 'Causa e impacto'),
+      h('div', { class: 'campo' }, h('span', {}, 'Causa provável'),
+        chips(CAUSAS, o.causa, (x) => set('causa', x || 'investigar'), { desabilitado: !edita })),
+      h('div', { class: 'campo' }, h('span', {}, 'Parecer do engenheiro TKA sobre a causa'),
+        chips(PARECERES, o.parecer_tka, (x) => set('parecer_tka', x), { desabilitado: !edita, permitirVazio: true })),
+      h('div', { class: 'duas' },
+        h('div', { class: 'campo' }, h('span', {}, 'Impediu a operação?'),
+          chips([{ v: 'true', t: 'Sim' }, { v: 'false', t: 'Não' }], o.impediu_operacao === true ? 'true' : o.impediu_operacao === false ? 'false' : String(o.impediu_operacao || ''),
+            (x) => set('impediu_operacao', x), { desabilitado: !edita, permitirVazio: true })),
+        campo('Tempo parado (h)', horas))),
     blocoMidia,
     h('section', { class: 'bloco' }, h('h2', {}, 'Situação'), situacao, h('div', { style: 'height:14px' }), garantia, resolucao),
     edita ? salvar : null, edita ? excluir : null);

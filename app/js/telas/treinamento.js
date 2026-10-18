@@ -56,7 +56,7 @@ export async function render(el, { id }) {
   const incluir = async (p) => {
     const atuais = ativos(await db.por('TreinamentoParticipantes', 'treinamento_id', id));
     if (atuais.some((a) => a.matricula && a.matricula === String(p.matricula))) return toast(`${p.nome} já está na lista.`);
-    await db.salvar('TreinamentoParticipantes', { id: uuid(), treinamento_id: id, matricula: String(p.matricula || ''), nome: p.nome, assinatura_midia_id: '' }, { autor });
+    await db.salvar('TreinamentoParticipantes', { id: uuid(), treinamento_id: id, matricula: String(p.matricula || ''), nome: p.nome, funcao: p.funcao || '', assinatura_midia_id: '' }, { autor });
     desenharParticipantes();
   };
   const assinar = async (p) => {
@@ -77,7 +77,7 @@ export async function render(el, { id }) {
       h('h2', {}, 'Participantes ', h('span', { class: 'contagem' }, `(${lista.length})`)),
       ...lista.map((p) => h('div', { class: 'membro' },
         h('div', { class: 'info' }, h('strong', {}, p.nome), h('small', { style: 'display:block;color:var(--tinta-suave)' },
-          `${p.matricula ? 'Matrícula ' + p.matricula + ' · ' : ''}${p.assinatura_midia_id ? 'assinado' : 'sem assinatura'}`)),
+          `${p.funcao ? p.funcao + ' · ' : ''}${p.matricula ? 'Matrícula ' + p.matricula + ' · ' : ''}${p.assinatura_midia_id ? 'assinado' : 'sem assinatura'}`)),
         edita && !p.assinatura_midia_id ? h('button', { type: 'button', class: 'btn claro btn-p', onclick: () => assinar(p) }, 'Assinar') : null,
         edita ? h('button', { type: 'button', class: 'remover', onclick: async () => {
           if (await confirmar(`Tirar ${p.nome} da lista?`, { ok: 'Tirar', perigo: true })) {

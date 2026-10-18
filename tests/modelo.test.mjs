@@ -63,3 +63,43 @@ describe('primeiroValor', () => {
   it('mantém zero', () => expect(primeiroValor(0, 5)).toBe(0));
   it('tudo vazio dá null', () => expect(primeiroValor('', undefined)).toBeNull());
 });
+
+import { dominioOperacao, provaIniciada, TAREFAS_PROVA, CAUSAS, PAPEIS, grupoCausa } from '../app/js/modelo.js';
+
+describe('equipe com cargo', () => {
+  it('novoMembro guarda o cargo da base', () => {
+    const m = novoMembro({ id: 'v' }, { id: 'f1', nome: 'Ana', matricula: '10', funcao: 'ELETRICISTA LV' }, 'eletricista');
+    expect(m).toMatchObject({ funcao: 'ELETRICISTA LV', papel: 'eletricista', avulso: false });
+  });
+  it('papéis incluem encarregado, eletricista, SESMT e outro', () => {
+    expect(PAPEIS.map((p) => p.v)).toEqual(expect.arrayContaining(['encarregado', 'eletricista', 'sesmt', 'outro']));
+  });
+});
+
+describe('prova prática de operação', () => {
+  const tudo = (r) => Object.fromEntries(TAREFAS_PROVA.map((t) => [t.k, r]));
+  it('seis tarefas', () => expect(TAREFAS_PROVA).toHaveLength(6));
+  it('sem respostas não há domínio', () => {
+    expect(dominioOperacao({})).toBe('');
+    expect(provaIniciada({})).toBe(false);
+  });
+  it('tudo executado = domínio', () => expect(dominioOperacao(tudo('executou'))).toBe('adequado'));
+  it('alguma com ajuda = dificuldade', () => expect(dominioOperacao({ ...tudo('executou'), prova_controle: 'ajuda' })).toBe('parcial'));
+  it('alguma não executada = não domina', () => expect(dominioOperacao({ ...tudo('ajuda'), prova_alarmes: 'nao' })).toBe('insuficiente'));
+  it('prova incompleta conta só o que foi respondido', () => {
+    expect(dominioOperacao({ prova_inspecao: 'executou' })).toBe('adequado');
+    expect(provaIniciada({ prova_inspecao: 'executou' })).toBe(true);
+  });
+});
+
+describe('causas', () => {
+  it('agrupa causas em equipamento, operação e outras', () => {
+    expect(CAUSAS.map((c) => c.v)).toEqual(['defeito', 'operacao', 'conhecimento', 'desgaste', 'externo', 'investigar']);
+    expect(grupoCausa('defeito')).toBe('equipamento');
+    expect(grupoCausa('operacao')).toBe('operacao');
+    expect(grupoCausa('conhecimento')).toBe('operacao');
+    expect(grupoCausa('desgaste')).toBe('outras');
+    expect(grupoCausa('')).toBe('investigar');
+    expect(grupoCausa('investigar')).toBe('investigar');
+  });
+});

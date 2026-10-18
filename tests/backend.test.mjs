@@ -47,6 +47,17 @@ describe('backend', () => {
     ctx.setup();
     expect(ctx.amb.planilhas[ctx.amb.props.PLANILHA_ID].getSheets().length).toBe(10);
   });
+  it('setup acrescenta colunas novas no fim sem perder linhas antigas', () => {
+    const sh = aba('Equipe');
+    const antigo = ['id', 'visita_id', 'matricula', 'nome', 'papel', 'avulso', 'removido', 'atualizado_em', 'atualizado_por'];
+    sh.data = [antigo, ['e1', 'v1', '10', 'Ana', 'operador', 'false', '', '', 'Alan']];
+    ctx.setup();
+    expect(sh.data[0].slice(0, antigo.length)).toEqual(antigo);
+    expect(sh.data[0]).toContain('funcao');
+    post(ctx, { acao: 'upsert', ...R, tabela: 'Equipe', registros: [{ id: 'e1', funcao: 'ELETRICISTA' }] });
+    const e1 = post(ctx, { acao: 'pull', ...R }).dados.Equipe[0];
+    expect(e1).toMatchObject({ id: 'e1', nome: 'Ana', papel: 'operador', funcao: 'ELETRICISTA' });
+  });
   it('seed substituir limpa linhas anteriores', () => {
     post(ctx, { acao: 'seed', ...R, tabela: 'Funcionarios', registros: [{ id: '1' }, { id: '2' }], substituir: true });
     post(ctx, { acao: 'seed', ...R, tabela: 'Funcionarios', registros: [{ id: '3' }], substituir: true });

@@ -1,8 +1,9 @@
 // Ficha da visita: status, leituras, série, equipe, ocorrências, mídias, treinamento e conclusão.
 import * as db from '../db.js';
 import {
-  STATUS, PAPEIS, GRAVIDADES, SITUACOES, parseNumeroBR, alertaKm, formatarNumero, novaOcorrencia, novoMembro,
-  alteracoesCadastro, hojeLocal, verdadeiro, uuid, primeiroValor,
+  STATUS, PAPEIS, GRAVIDADES, SITUACOES, CAUSAS, TAREFAS_PROVA, RESULTADOS_PROVA, DOMINIOS, parseNumeroBR, alertaKm,
+  formatarNumero, novaOcorrencia, novoMembro, alteracoesCadastro, hojeLocal, verdadeiro, uuid, primeiroValor,
+  dominioOperacao, provaIniciada,
 } from '../modelo.js';
 import { app, montar, h, chips, campo, toast, modal, confirmar, placa, dataBR, icone } from '../ui.js';
 import { autosave, ativos, galeria, botoesMidia, buscaPessoa, rotulo, mensagemConsulta } from './comum.js';
@@ -76,15 +77,16 @@ export async function render(el, { id }) {
   const avulso = async () => {
     const nome = h('input', { type: 'text' });
     const mat = h('input', { type: 'text', inputmode: 'numeric' });
-    const ok = await modal('Pessoa sem cadastro', h('div', {}, campo('Nome', nome), campo('Matrícula (se souber)', mat)), [
+    const cargo = h('input', { type: 'text', placeholder: 'Ex.: Técnico de segurança, gestor, terceiro' });
+    const ok = await modal('Pessoa sem cadastro', h('div', {}, campo('Nome', nome), campo('Matrícula (se souber)', mat), campo('Cargo ou função', cargo)), [
       { t: 'Cancelar', classe: 'claro', valor: () => false }, { t: 'Adicionar', valor: () => true }]);
-    if (ok && nome.value.trim()) adicionar({ nome: nome.value, matricula: mat.value });
+    if (ok && nome.value.trim()) adicionar({ nome: nome.value, matricula: mat.value, funcao: cargo.value });
   };
   async function desenharEquipe() {
     const membros = ativos(await db.por('Equipe', 'visita_id', id));
     const itens = membros.map((m) => h('div', { class: 'membro' },
       h('div', { class: 'info' }, h('strong', {}, m.nome), h('small', { style: 'display:block;color:var(--tinta-suave)' },
-        `${rotulo(PAPEIS, m.papel)}${m.matricula ? ' · matrícula ' + m.matricula : ''}${verdadeiro(m.avulso) ? ' · sem cadastro' : ''}`)),
+        [rotulo(PAPEIS, m.papel), m.funcao, m.matricula ? 'matrícula ' + m.matricula : '', verdadeiro(m.avulso) ? 'sem cadastro' : ''].filter(Boolean).join(' · '))),
       edita ? h('button', { type: 'button', class: 'remover', onclick: async () => {
         if (await confirmar(`Remover ${m.nome} da equipe?`, { ok: 'Remover', perigo: true })) {
           await db.salvar('Equipe', { ...m, removido: true }, { autor: app.sessao.autor });
@@ -104,11 +106,53 @@ export async function render(el, { id }) {
     }
     montar(blocoEquipe, 
       h('h2', {}, 'Equipe ', h('span', { class: 'contagem' }, `(${membros.length})`)),
-      ...(itens.length ? itens : [h('p', { style: 'color:var(--tinta-suave);margin:0 0 8px' }, 'Quem opera este equipamento? Pode ser um motorista-operador ou motorista e operador separados.')]),
+      ...(itens.length ? itens : [h('p', { style: 'color:var(--tinta-suave);margin:0 0 8px' }, 'Quem estava com o equipamento: motorista e operador, encarregado, eletricistas, SESMT ou outras pessoas presentes.')]),
       edita ? h('div', { style: 'margin-top:12px' }, sugestao,
         h('div', { class: 'campo' }, h('span', {}, 'Adicionar como'), chips(PAPEIS, papelNovo, (x) => { papelNovo = x; })),
         buscaPessoa(adicionar),
         h('button', { type: 'button', class: 'btn claro btn-p', style: 'margin-top:8px', onclick: avulso }, 'Adicionar pessoa sem cadastro')) : null);
+    desenharProva(membros);
+  }
+
+  // Prova prática: o operador demonstra cada tarefa; o domínio sai das respostas.
+  const blocoProva = h('section', { class: 'bloco' });
+  const COR_DOMINIO = { adequado: 'verde', parcial: 'amarelo', insuficiente: 'vermelho' };
+  function desenharProva(membros = []) {
+    const d = vis.dados;
+    const selo = h('p', { class: 'selo-dominio' });
+    const atualizarSelo = () => {
+      const dom = dominioOperacao(vis.dados);
+      selo.className = 'selo-dominio ' + (COR_DOMINIO[dom] || '');
+      selo.textContent = dom ? `Resultado: ${rotulo(DOMINIOS, dom)}` : '';
+    };
+    const marcar = (k, r) => {
+      set(k, r);
+      set('dominio_operacao', dominioOperacao(vis.dados));
+      atualizarSelo();
+    };
+    if (!provaIniciada(d)) {
+      montar(blocoProva, h('h2', {}, 'Prova prática de operação'),
+        h('p', { style: 'color:var(--tinta-suave);margin:0 0 10px' },
+          'O operador demonstra 6 tarefas na sua frente. Começa tudo como "Executou"; mude só o que ele não fizer sozinho.'),
+        edita ? h('button', { type: 'button', class: 'btn sec bloco-largo', onclick: () => {
+          for (const t of TAREFAS_PROVA) set(t.k, 'executou');
+          const op = membros.find((m) => ['motorista_operador', 'operador'].includes(m.papel));
+          if (op && !vis.dados.prova_operador) set('prova_operador', op.nome);
+          set('dominio_operacao', dominioOperacao(vis.dados));
+          desenharProva(membros);
+        } }, 'Iniciar prova prática') : null);
+      return;
+    }
+    const nomes = [...new Set([d.prova_operador, ...membros.map((m) => m.nome)].filter(Boolean))];
+    const operador = h('select', { disabled: !edita, onchange: (e) => set('prova_operador', e.target.value) },
+      h('option', { value: '' }, 'Escolha quem fez a prova'),
+      nomes.map((n) => h('option', { value: n, selected: n === d.prova_operador }, n)));
+    montar(blocoProva, h('h2', {}, 'Prova prática de operação'),
+      campo('Operador avaliado', operador, membros.length ? null : 'Adicione a pessoa na equipe acima para escolher aqui.'),
+      ...TAREFAS_PROVA.map((t) => h('div', { class: 'campo tarefa-prova' }, h('span', {}, t.t),
+        chips(RESULTADOS_PROVA, d[t.k], (r) => marcar(t.k, r || 'executou'), { desabilitado: !edita }))),
+      selo);
+    atualizarSelo();
   }
 
   // Ocorrências
@@ -122,7 +166,7 @@ export async function render(el, { id }) {
         o.gravidade ? h('span', { class: 'gravidade ' + o.gravidade }, rotulo(GRAVIDADES, o.gravidade)) : null, ' ',
         h('strong', {}, o.tipo || 'Ocorrência sem tipo'), o.componente ? ` · ${o.componente}` : '',
         h('div', { style: 'font-size:14px;color:var(--tinta-suave)' },
-          [rotulo(SITUACOES, o.situacao) || 'Situação não informada', o.protocolo ? `protocolo ${o.protocolo}` : '', n ? `${n} arquivo(s)` : ''].filter(Boolean).join(' · ')));
+          [rotulo(CAUSAS, o.causa), rotulo(SITUACOES, o.situacao) || 'Situação não informada', o.protocolo ? `protocolo ${o.protocolo}` : '', n ? `${n} arquivo(s)` : ''].filter(Boolean).join(' · ')));
     });
     montar(blocoOcorr, 
       h('h2', {}, 'Ocorrências ', h('span', { class: 'contagem' }, `(${lista.length})`)),
@@ -188,7 +232,7 @@ export async function render(el, { id }) {
     app.ir('#/hoje');
   } }, verdadeiro(v.concluida) ? 'Salvar e voltar' : 'Concluir visita');
 
-  montar(el, cab, mensagemConsulta(), blocoStatus, blocoLeituras, blocoEquipe, blocoOcorr, blocoMidia, blocoTrein,
+  montar(el, cab, mensagemConsulta(), blocoStatus, blocoLeituras, blocoEquipe, blocoProva, blocoOcorr, blocoMidia, blocoTrein,
     h('section', { class: 'bloco' }, campo('Observações gerais', obs)),
     edita ? concluir : null);
   if (vis.dados.km != null) verificarKm();
