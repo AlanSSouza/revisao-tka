@@ -38,7 +38,7 @@ export async function galeria(midias) {
     const tag = pendente ? 'pendente' : m.tipo === 'video' ? 'vídeo' : null;
     const midia = m.tipo === 'video' && pendente
       ? h('video', { src: url, muted: true, playsinline: true, preload: 'metadata' })
-      : h('img', { src: url, alt: m.legenda || m.tipo, loading: 'lazy' });
+      : h('img', { crossorigin: m.drive_id ? 'anonymous' : null, src: url, alt: m.legenda || m.tipo, loading: 'lazy' });
     box.append(m.link
       ? h('a', { href: m.link, target: '_blank', rel: 'noopener' }, midia, tag ? h('span', { class: 'tag' }, tag) : null)
       : h('div', {}, midia, h('span', { class: 'tag' }, tag)));

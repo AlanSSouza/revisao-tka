@@ -122,8 +122,11 @@ export async function salvarBlobComoMidia(blob, ctx) {
 }
 
 // URL para exibir a mídia: blob local enquanto pendente, miniatura do Drive depois.
+// Mesma URL na tela e no PDF: o PDF reaproveita a imagem já baixada (cache) e evita o limite do Google.
+export const urlDrive = (driveId) => `https://lh3.googleusercontent.com/d/${driveId}=w900`;
+
 export async function urlMiniatura(midia) {
-  if (midia.drive_id) return `https://drive.google.com/thumbnail?id=${midia.drive_id}&sz=w400`;
+  if (midia.drive_id) return urlDrive(midia.drive_id);
   const b = await db.blob(midia.id);
   return b ? URL.createObjectURL(b.blob) : '';
 }

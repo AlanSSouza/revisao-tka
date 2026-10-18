@@ -236,3 +236,14 @@ details.secao > .conteudo { padding: 0 16px 16px; }
 .tabela-dados th { text-align: left; font-weight: 500; color: var(--tinta-suave); padding: 6px 8px 6px 0; vertical-align: top; width: 40%; }
 .tabela-dados td { padding: 6px 0; font-weight: 600; overflow-wrap: anywhere; }
 .tabela-dados .original { display: block; font-weight: 400; font-size: 13px; color: #8A4B00; }
+
+/* Relatórios */
+.indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+.indicador { background: var(--petroleo-fundo); color: #fff; border-radius: var(--raio); padding: 14px 16px; }
+.indicador strong { display: block; font-family: var(--cond); font-size: 32px; line-height: 1; }
+.indicador span { font-size: 14px; opacity: .85; }
+.grafico svg { display: block; width: 100%; height: auto; }
+.bloco h3 { font-size: 16px; margin: 16px 0 8px; }
+.nada { color: var(--tinta-suave); margin: 0; }
+.sub-ocorr { font-size: 14px; color: var(--tinta-suave); }
+@media (min-width: 720px) { .indicadores { grid-template-columns: repeat(4, 1fr); } }

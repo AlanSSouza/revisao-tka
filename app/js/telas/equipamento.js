@@ -41,7 +41,8 @@ export async function render(el, { placa: id }) {
       h('tr', {}, h('th', {}, 'Horímetro'), h('td', {}, eq.horimetro_atual !== '' && eq.horimetro_atual != null ? formatarNumero(eq.horimetro_atual) + ' h' : '—')),
       h('tr', {}, h('th', {}, 'Lotação'), h('td', {}, eq.lotacao || '')),
       eq.local_previsto ? h('tr', {}, h('th', {}, 'Local'), h('td', {}, mapa ? h('a', { href: mapa, target: '_blank', rel: 'noopener' }, 'Abrir no mapa') : eq.local_previsto)) : null)),
-    edita ? h('button', { type: 'button', class: 'btn bloco-largo', style: 'margin-top:12px', onclick: () => iniciarVisita(id) }, aberta ? 'Continuar visita' : 'Iniciar visita') : null);
+    edita ? h('button', { type: 'button', class: 'btn bloco-largo', style: 'margin-top:12px', onclick: () => iniciarVisita(id) }, aberta ? 'Continuar visita' : 'Iniciar visita') : null,
+    h('a', { class: 'btn claro bloco-largo', style: 'margin-top:10px', href: `#/relatorio/${encodeURIComponent(id)}` }, 'Ver relatório e PDF'));
 
   const historico = h('section', { class: 'bloco' }, h('h2', {}, 'Visitas ', h('span', { class: 'contagem' }, `(${visitas.length})`)),
     visitas.length ? h('ul', { class: 'lista' }, visitas.map((v) => h('li', {}, h('a', { class: 'item' + (verdadeiro(v.concluida) ? ' feito' : ' atual'), href: `#/visita/${v.id}` },

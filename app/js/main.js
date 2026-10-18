@@ -12,6 +12,8 @@ const ROTAS = [
   { re: /^#\/visita\/([^/]+)$/, tela: 'visita', aba: 'hoje', params: ['id'] },
   { re: /^#\/ocorrencia\/([^/]+)$/, tela: 'ocorrencia', aba: 'hoje', params: ['id'] },
   { re: /^#\/treinamento\/([^/]+)$/, tela: 'treinamento', aba: 'hoje', params: ['id'] },
+  { re: /^#\/relatorios$/, tela: 'relatorios', aba: 'relatorios', atualiza: true },
+  { re: /^#\/relatorio\/([^/]+)$/, tela: 'relatorio-placa', aba: 'relatorios', params: ['placa'], atualiza: true },
 ];
 
 const ABAS = [
@@ -19,7 +21,7 @@ const ABAS = [
   { id: 'planejar', t: 'Planejar', href: '#/planejar' },
   { id: 'parque', t: 'Parque', href: '#/parque' },
   { id: 'garantias', t: 'Garantias', em_breve: true },
-  { id: 'relatorios', t: 'Relatórios', em_breve: true },
+  { id: 'relatorios', t: 'Relatórios', href: '#/relatorios' },
 ];
 
 const raiz = document.getElementById('raiz');
@@ -94,7 +96,13 @@ function atualizarSelo() {
   if (alertar) alertaIos.textContent = `${p.midias} fotos/vídeos (${Math.round(mb)} MB) aguardando envio há ${Math.round(horas)} h. Conecte-se a uma rede e toque em "${n} pendentes" para enviar.`;
 }
 
-sync.eventos.addEventListener('sync:estado', (ev) => { ultimoEstado = { ...ultimoEstado, ...ev.detail }; atualizarSelo(); });
+sync.eventos.addEventListener('sync:estado', (ev) => {
+  const novoPull = !ev.detail.emAndamento && ev.detail.ultimoOk && ev.detail.ultimoOk !== ultimoEstado.ultimoOk;
+  ultimoEstado = { ...ultimoEstado, ...ev.detail };
+  atualizarSelo();
+  // Relatórios se refazem sozinhos assim que chegam dados novos do servidor.
+  if (novoPull && rotaAtual?.atualiza) rotear({ manterRolagem: true });
+});
 let pedindoSenha = false;
 sync.eventos.addEventListener('sync:auth', async () => {
   if (pedindoSenha) return;
@@ -121,14 +129,17 @@ addEventListener('offline', atualizarSelo);
 db.eventos.addEventListener('salvo', async () => { ultimoEstado = { ...ultimoEstado, pendentes: await sync.pendentes() }; atualizarSelo(); });
 
 let molduraAba = null;
-async function rotear() {
+let rotaAtual = null;
+async function rotear({ manterRolagem = false } = {}) {
   const hash = location.hash || '#/hoje';
   if (!app.sessao && hash !== '#/entrar') return app.ir('#/entrar');
   const rota = ROTAS.find((r) => r.re.test(hash));
   if (!rota) return app.ir('#/hoje');
+  rotaAtual = rota;
+  const rolagem = scrollY;
   const m = hash.match(rota.re);
   const params = Object.fromEntries((rota.params || []).map((p, i) => [p, decodeURIComponent(m[i + 1])]));
-  const mod = await import(`./telas/${rota.tela}.js`);
+  const mod = await import(`./telas/${rota.tela}.js`).catch((e) => ({ render: () => { throw e; } }));
   let alvo;
   if (rota.semMoldura) {
     molduraAba = null;
@@ -137,9 +148,10 @@ async function rotear() {
     alvo = moldura(rota.aba);
     molduraAba = rota.aba;
   }
-  scrollTo(0, 0);
+  if (!manterRolagem) scrollTo(0, 0);
   try {
     await mod.render(alvo, params);
+    if (manterRolagem) scrollTo(0, rolagem);
   } catch (e) {
     console.error(e);
     alvo.replaceChildren(h('div', { class: 'vazio' }, h('strong', {}, 'Não foi possível abrir esta tela'), h('p', {}, String(e.message || e))));
