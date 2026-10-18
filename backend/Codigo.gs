@@ -18,7 +18,10 @@ function acoes() {
     login: { run: function (req, papel) { return { papel: papel }; } },
     pull: { run: acaoPull },
     upsert: { escrita: true, run: acaoUpsert },
-    seed: { escrita: true, run: acaoSeed }
+    seed: { escrita: true, run: acaoSeed },
+    uploadInicio: { escrita: true, run: acaoUploadInicio },
+    uploadPedaco: { escrita: true, run: acaoUploadPedaco },
+    uploadStatus: { escrita: true, run: acaoUploadStatus }
   };
 }
 

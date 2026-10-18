@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { carregarGas, post } from './helpers/gas-mock.mjs';
 
-const ARQ = ['backend/Planilha.gs', 'backend/Codigo.gs'];
+const ARQ = ['backend/Planilha.gs', 'backend/Codigo.gs', 'backend/Midia.gs'];
 let ctx;
 const R = { senha: 'reg', autor: 'Alan' };
 const C = { senha: 'con', autor: 'Eng' };
