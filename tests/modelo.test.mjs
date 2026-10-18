@@ -103,3 +103,19 @@ describe('causas', () => {
     expect(grupoCausa('investigar')).toBe('investigar');
   });
 });
+
+import { linkCoordenadas } from '../app/js/modelo.js';
+
+describe('linkCoordenadas', () => {
+  it('monta link do Google Maps com o ponto exato', () => {
+    expect(linkCoordenadas(-11.675544822, -38.991265028)).toBe('https://www.google.com/maps/search/?api=1&query=-11.675545,-38.991265');
+  });
+  it('aceita texto vindo da planilha', () => {
+    expect(linkCoordenadas('-11.5', '-38.9')).toBe('https://www.google.com/maps/search/?api=1&query=-11.500000,-38.900000');
+  });
+  it('sem coordenada não há link', () => {
+    expect(linkCoordenadas('', '')).toBeNull();
+    expect(linkCoordenadas(null, -38)).toBeNull();
+    expect(linkCoordenadas('abc', 1)).toBeNull();
+  });
+});

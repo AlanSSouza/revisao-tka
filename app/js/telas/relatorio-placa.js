@@ -1,7 +1,7 @@
 // Relatório de uma placa: dados, garantias, cada visita com equipe, ocorrências, fotos e treinamentos. Exporta PDF.
 import {
   STATUS, GRAVIDADES, SITUACOES, PAPEIS, CAUSAS, CONSTATACOES, PARECERES, DOMINIOS, TAREFAS_PROVA, RESULTADOS_PROVA,
-  hojeLocal, formatarNumero, verdadeiro, provaIniciada,
+  hojeLocal, formatarNumero, verdadeiro, provaIniciada, linkCoordenadas,
 } from '../modelo.js';
 import { relatorioPlaca } from '../relatorio.js';
 import { app, montar, h, placa, dataBR, vazio } from '../ui.js';
@@ -45,6 +45,10 @@ export async function render(el, { placa: id }) {
       h('h2', {}, `Visita de ${dataBR(v.inicio, true)}`, verdadeiro(v.concluida) ? '' : h('span', { class: 'contagem' }, ' (em andamento)')),
       h('table', { class: 'tabela-dados' }, h('tbody', {},
         linha('Status', rotulo(STATUS, v.status)), linha('Registrada por', v.autor), linha('Engenheiro TKA', v.engenheiro),
+        linkCoordenadas(v.lat, v.lng) ? h('tr', {}, h('th', {}, 'Local da visita'), h('td', {},
+          h('a', { href: linkCoordenadas(v.lat, v.lng), target: '_blank', rel: 'noopener' }, 'Abrir no mapa'),
+          h('span', { class: 'original', style: 'color:var(--tinta-suave)' },
+            `${Number(v.lat).toFixed(5)}, ${Number(v.lng).toFixed(5)}${v.precisao ? ` · precisão de ${v.precisao} m` : ''}`))) : null,
         linha('KM', v.km !== '' && v.km != null ? num(v.km) : ''), linha('Horímetro', v.horimetro !== '' && v.horimetro != null ? num(v.horimetro, ' h') : ''),
         linha('Nº de série informado', v.serie_munck), linha('Observações', v.observacoes),
         linha('Equipe', v.equipe.map((p) => `${p.nome}${p.matricula ? ` (${p.matricula})` : ''} · ${[rotulo(PAPEIS, p.papel), p.funcao].filter(Boolean).join(', ')}`).join('; ')),

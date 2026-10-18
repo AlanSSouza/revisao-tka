@@ -196,3 +196,11 @@ export function primeiroValor(...valores) {
   const v = valores.find((x) => x !== '' && x !== null && x !== undefined);
   return v === undefined ? null : v;
 }
+
+// Link do ponto GPS no Google Maps (abre o app no celular ou o navegador no computador).
+export function linkCoordenadas(lat, lng) {
+  if (lat === '' || lng === '' || lat == null || lng == null) return null;
+  const a = Number(lat), b = Number(lng);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${a.toFixed(6)},${b.toFixed(6)}`;
+}

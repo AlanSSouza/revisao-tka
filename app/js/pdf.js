@@ -2,7 +2,7 @@
 import * as db from './db.js';
 import {
   STATUS, GRAVIDADES, SITUACOES, PAPEIS, CAUSAS, CONSTATACOES, PARECERES, DOMINIOS, TAREFAS_PROVA, RESULTADOS_PROVA,
-  formatarNumero, verdadeiro, provaIniciada,
+  formatarNumero, verdadeiro, provaIniciada, linkCoordenadas,
 } from './modelo.js';
 import { gruposCausa, coresConstatacao, coresDominio, pct } from './telas/relatorios.js';
 import { CORES, barras, rosca, colunasProgresso } from './graficos.js';
@@ -158,11 +158,13 @@ class Folha {
     const col = LARG / 2;
     for (let i = 0; i < lista.length; i += 2) {
       this.garantir(10);
-      lista.slice(i, i + 2).forEach(([r, v], j) => {
+      lista.slice(i, i + 2).forEach(([r, v, url], j) => {
         const x = M + j * col;
+        const texto = doc.splitTextToSize(limpo(v), col - 4)[0] || '';
         doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(CORES.suave).text(limpo(r), x, this.y + 3);
-        doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(CORES.tinta)
-          .text(doc.splitTextToSize(limpo(v), col - 4)[0] || '', x, this.y + 7.5);
+        doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(url ? CORES.petroleo : CORES.tinta);
+        if (url) doc.textWithLink(texto, x, this.y + 7.5, { url });
+        else doc.text(texto, x, this.y + 7.5);
       });
       this.y += 10;
     }
@@ -378,7 +380,7 @@ export async function pdfPlaca(r, { autor } = {}) {
     f.campos([
       ['Registrada por', v.autor], ['Engenheiro TKA', v.engenheiro], ['Status', rotulo(STATUS, v.status)],
       ['KM / horímetro', `${num(v.km)} / ${num(v.horimetro, ' h')}`], ['Nº de série informado', v.serie_munck],
-      ['Localização', v.lat && v.lng ? `${Number(v.lat).toFixed(5)}, ${Number(v.lng).toFixed(5)}` : ''],
+      ['Local da visita (abrir no mapa)', linkCoordenadas(v.lat, v.lng) ? `${Number(v.lat).toFixed(5)}, ${Number(v.lng).toFixed(5)}${v.precisao ? ` (±${v.precisao} m)` : ''}` : '', linkCoordenadas(v.lat, v.lng)],
       ['Domínio da operação', v.dominio ? rotulo(DOMINIOS, v.dominio) : ''], ['Operador avaliado', v.prova_operador],
     ]);
     if (provaIniciada(v)) {
