@@ -1,0 +1,14 @@
+{
+  "name": "revisao-tka",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "importar": "node tools/importar.mjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.6",
+    "vitest": "^5.0.5",
+    "xlsx": "^0.18.5"
+  }
+}
