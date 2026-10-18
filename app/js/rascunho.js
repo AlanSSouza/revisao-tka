@@ -17,5 +17,11 @@ export function criarRascunho(registro, { salvar, ms = 800, ativo = true }) {
     clearTimeout(timer);
     timer = setTimeout(r.flush, ms);
   };
+  // Registro excluído: descarta o pendente para o salvamento automático não desfazer a exclusão.
+  r.cancelar = () => {
+    clearTimeout(timer);
+    sujo = false;
+    ativo = false;
+  };
   return r;
 }

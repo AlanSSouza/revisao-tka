@@ -4,6 +4,7 @@ import { ASSUNTOS_TREINAMENTO, parseNumeroBR, uuid } from '../modelo.js';
 import { app, montar, h, chips, campo, toast, modal, confirmar } from '../ui.js';
 import { salvarBlobComoMidia } from '../midia.js';
 import { autosave, ativos, buscaPessoa, mensagemConsulta } from './comum.js';
+import { excluirTreinamento } from '../exclusao.js';
 
 function quadroAssinatura() {
   const canvas = h('canvas', { class: 'assinatura', 'aria-label': 'Área para assinar com o dedo' });
@@ -79,12 +80,12 @@ export async function render(el, { id }) {
         h('div', { class: 'info' }, h('strong', {}, p.nome), h('small', { style: 'display:block;color:var(--tinta-suave)' },
           `${p.funcao ? p.funcao + ' · ' : ''}${p.matricula ? 'Matrícula ' + p.matricula + ' · ' : ''}${p.assinatura_midia_id ? 'assinado' : 'sem assinatura'}`)),
         edita && !p.assinatura_midia_id ? h('button', { type: 'button', class: 'btn claro btn-p', onclick: () => assinar(p) }, 'Assinar') : null,
-        edita ? h('button', { type: 'button', class: 'remover', onclick: async () => {
-          if (await confirmar(`Tirar ${p.nome} da lista?`, { ok: 'Tirar', perigo: true })) {
+        edita ? h('button', { type: 'button', class: 'remover', 'aria-label': `Remover ${p.nome} do treinamento`, onclick: async () => {
+          if (await confirmar(`Remover ${p.nome} do treinamento?`, { ok: 'Remover', perigo: true })) {
             await db.salvar('TreinamentoParticipantes', { ...p, removido: true }, { autor });
             desenharParticipantes();
           }
-        } }, 'Tirar') : null)),
+        } }, 'Remover') : null)),
       edita && equipe.length ? h('div', { class: 'acoes', style: 'margin:10px 0' },
         equipe.map((m) => h('button', { type: 'button', class: 'btn claro btn-p', onclick: () => incluir(m) }, `+ ${m.nome.split(' ')[0]} (equipe)`))) : null,
       edita ? h('div', { style: 'margin-top:8px' }, buscaPessoa(incluir, { placeholder: 'Incluir outra pessoa: nome ou matrícula' })) : null);
@@ -103,6 +104,13 @@ export async function render(el, { id }) {
       await tr.flush();
       toast('Treinamento salvo.', 'ok');
       app.ir(voltar);
-    } }, 'Salvar treinamento') : null);
+    } }, 'Salvar treinamento') : null,
+    edita ? h('button', { type: 'button', class: 'btn perigo bloco-largo', style: 'margin-top:10px', onclick: async () => {
+      if (!(await confirmar('Excluir este treinamento e a lista de participantes?', { ok: 'Excluir', perigo: true }))) return;
+      tr.cancelar?.();
+      await excluirTreinamento(id, { autor });
+      toast('Treinamento excluído.', 'ok');
+      app.ir(voltar);
+    } }, 'Excluir treinamento') : null);
   await desenharParticipantes();
 }

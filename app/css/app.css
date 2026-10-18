@@ -201,7 +201,7 @@ details.secao > .conteudo { padding: 0 16px 16px; }
 .sugestoes small { color: var(--tinta-suave); display: block; }
 .membro { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--linha); }
 .membro .info { flex: 1; }
-.membro .remover { background: none; border: 0; color: var(--vermelho); font-weight: 600; min-height: 44px; }
+.membro .remover { background: #fff; border: 1.5px solid var(--vermelho); border-radius: var(--raio-p); color: var(--vermelho); font-weight: 600; min-height: 40px; padding: 0 12px; font: inherit; font-size: 14px; font-weight: 600; }
 
 /* Modal e toast */
 .modal-fundo { position: fixed; inset: 0; background: #0B2E2Fb3; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }

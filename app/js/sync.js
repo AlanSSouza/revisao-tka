@@ -2,6 +2,7 @@
 import * as db from './db.js';
 import { chamar, entrar, ErroAuth, ErroRede } from './api.js';
 import { PEDACO } from './config.js';
+import { verdadeiro } from './modelo.js';
 
 export const eventos = new EventTarget();
 const LOTE = 50;
@@ -81,7 +82,8 @@ async function enviarMidias() {
   for (const b of await db.blobs()) {
     const m = await db.get('Midias', b.id);
     try {
-      if (m && !m.link) await enviarMidia(m);
+      if (m && verdadeiro(m.removido)) await db.removerBlob(b.id);
+      else if (m && !m.link) await enviarMidia(m);
       else if (m?.link) await db.removerBlob(b.id);
     } catch (e) {
       if (e instanceof ErroRede || e instanceof ErroAuth) throw e;

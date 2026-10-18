@@ -7,6 +7,7 @@ import {
 } from '../modelo.js';
 import { app, montar, h, chips, campo, toast, modal, confirmar, placa, dataBR, icone } from '../ui.js';
 import { autosave, ativos, galeria, botoesMidia, buscaPessoa, rotulo, mensagemConsulta } from './comum.js';
+import { excluirVisita } from '../exclusao.js';
 
 export async function render(el, { id }) {
   const v = await db.get('Visitas', id);
@@ -87,7 +88,7 @@ export async function render(el, { id }) {
     const itens = membros.map((m) => h('div', { class: 'membro' },
       h('div', { class: 'info' }, h('strong', {}, m.nome), h('small', { style: 'display:block;color:var(--tinta-suave)' },
         [rotulo(PAPEIS, m.papel), m.funcao, m.matricula ? 'matrícula ' + m.matricula : '', verdadeiro(m.avulso) ? 'sem cadastro' : ''].filter(Boolean).join(' · '))),
-      edita ? h('button', { type: 'button', class: 'remover', onclick: async () => {
+      edita ? h('button', { type: 'button', class: 'remover', 'aria-label': `Remover ${m.nome} da equipe`, onclick: async () => {
         if (await confirmar(`Remover ${m.nome} da equipe?`, { ok: 'Remover', perigo: true })) {
           await db.salvar('Equipe', { ...m, removido: true }, { autor: app.sessao.autor });
           desenharEquipe();
@@ -232,9 +233,19 @@ export async function render(el, { id }) {
     app.ir('#/hoje');
   } }, verdadeiro(v.concluida) ? 'Salvar e voltar' : 'Concluir visita');
 
+  // Visita aberta por engano: some do app e dos relatórios (fica marcada como removida na planilha).
+  const excluir = h('button', { type: 'button', class: 'btn perigo bloco-largo', style: 'margin-top:10px', onclick: async () => {
+    if (!(await confirmar('Excluir esta visita? A equipe, as ocorrências, os treinamentos e as fotos dela também serão excluídos.', { ok: 'Excluir visita', perigo: true }))) return;
+    vis.cancelar?.();
+    await excluirVisita(id, { autor: app.sessao.autor });
+    toast('Visita excluída.', 'ok');
+    app.ir(`#/equipamento/${encodeURIComponent(v.placa)}`);
+  } }, 'Excluir visita');
+
   montar(el, cab, mensagemConsulta(), blocoStatus, blocoLeituras, blocoEquipe, blocoProva, blocoOcorr, blocoMidia, blocoTrein,
     h('section', { class: 'bloco' }, campo('Observações gerais', obs)),
-    edita ? concluir : null);
+    edita ? concluir : null,
+    edita && !verdadeiro(v.concluida) ? excluir : null);
   if (vis.dados.km != null) verificarKm();
   await Promise.all([desenharEquipe(), desenharOcorrencias(), desenharMidia(), desenharTreinamentos()]);
 }

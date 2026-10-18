@@ -84,6 +84,15 @@ describe('sincronizar', () => {
     expect(servidor).toBe(tamanho);
   });
 
+  it('mídia excluída não sobe para o Drive e libera o arquivo do aparelho', async () => {
+    await db.salvar('Midias', { id: 'm1', placa: 'A', mime: 'image/jpeg', removido: true }, { autor: 'A' });
+    await db.salvarBlob('m1', new Blob(['abc']));
+    const r = await sincronizar();
+    expect(acoes()).not.toContain('uploadInicio');
+    expect(await db.blob('m1')).toBeUndefined();
+    expect(r.pendentes.midias).toBe(0);
+  });
+
   it('mídia concluída remove blob e grava link', async () => {
     await db.salvar('Midias', { id: 'm1', placa: 'A', mime: 'image/jpeg' }, { autor: 'A' });
     await db.salvarBlob('m1', new Blob(['abc']));

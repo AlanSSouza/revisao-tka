@@ -32,3 +32,17 @@ describe('rascunho', () => {
     expect(n).toBe(1);
   });
 });
+
+describe('rascunho cancelado', () => {
+  it('cancelar descarta alteração pendente e impede salvamentos futuros', async () => {
+    let n = 0;
+    const r = criarRascunho({ id: 1 }, { salvar: async () => { n++; }, ms: 5 });
+    r.set('km', 5);
+    r.cancelar();
+    await new Promise((ok) => setTimeout(ok, 20));
+    await r.flush();
+    r.set('km', 6);
+    await r.flush();
+    expect(n).toBe(0);
+  });
+});

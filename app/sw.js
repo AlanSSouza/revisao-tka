@@ -6,7 +6,7 @@ const ARQUIVOS = [
   'js/main.js', 'js/ui.js', 'js/db.js', 'js/modelo.js', 'js/api.js', 'js/sync.js', 'js/midia.js', 'js/config.js', 'js/rascunho.js',
   'js/telas/entrada.js', 'js/telas/hoje.js', 'js/telas/planejar.js', 'js/telas/parque.js',
   'js/telas/equipamento.js', 'js/telas/visita.js', 'js/telas/ocorrencia.js', 'js/telas/treinamento.js', 'js/telas/comum.js',
-  'js/relatorio.js', 'js/graficos.js', 'js/pdf.js', 'js/telas/relatorios.js', 'js/telas/relatorio-placa.js', 'vendor/jspdf.umd.min.js',
+  'js/relatorio.js', 'js/exclusao.js', 'js/graficos.js', 'js/pdf.js', 'js/telas/relatorios.js', 'js/telas/relatorio-placa.js', 'vendor/jspdf.umd.min.js',
   'assets/logo.png', 'assets/gptw.png', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/apple-touch-icon.png',
   'assets/fonts/barlow-latin-400-normal.woff2', 'assets/fonts/barlow-latin-500-normal.woff2',
   'assets/fonts/barlow-latin-600-normal.woff2', 'assets/fonts/barlow-latin-700-normal.woff2',
