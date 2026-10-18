@@ -77,3 +77,42 @@ describe('salvarComBlob', () => {
     expect((await db.outbox()).length).toBe(1);
   });
 });
+
+// iOS perde o arquivo por trás de um Blob guardado no IndexedDB quando o app é fechado.
+// Por isso o banco guarda os bytes (ArrayBuffer), nunca o objeto Blob/File.
+describe('arquivos guardados como bytes', () => {
+  const brutos = async (nome, id) => {
+    const tx = (await new Promise((ok) => { const r = indexedDB.open(nome); r.onsuccess = () => ok(r.result); })).transaction('blobs');
+    return new Promise((ok) => { const r = tx.objectStore('blobs').get(id); r.onsuccess = () => ok(r.result); });
+  };
+
+  it('salvarComBlob grava ArrayBuffer e tipo, e devolve Blob ao ler', async () => {
+    await db.abrir('bytes-1');
+    await db.salvarComBlob('Midias', { id: 'm1' }, new Blob(['abc'], { type: 'image/jpeg' }), { autor: 'A' });
+    const cru = await brutos('bytes-1', 'm1');
+    expect(cru.blob).toBeUndefined();
+    expect(cru.dados).toBeInstanceOf(ArrayBuffer);
+    expect(cru.tipo).toBe('image/jpeg');
+    const b = await db.blob('m1');
+    expect(b.blob.size).toBe(3);
+    expect(b.blob.type).toBe('image/jpeg');
+    expect(await b.blob.text()).toBe('abc');
+  });
+
+  it('salvarBlob também grava bytes; blobs() devolve Blobs', async () => {
+    await db.abrir('bytes-2');
+    await db.salvarBlob('m2', new Blob(['xyz']));
+    expect((await brutos('bytes-2', 'm2')).dados).toBeInstanceOf(ArrayBuffer);
+    const [b] = await db.blobs();
+    expect(await b.blob.text()).toBe('xyz');
+  });
+
+  it('marcarRecebido mantém os bytes', async () => {
+    await db.abrir('bytes-3');
+    await db.salvarBlob('m3', new Blob(['12345']));
+    await db.marcarRecebido('m3', 2);
+    const b = await db.blob('m3');
+    expect(b.recebido).toBe(2);
+    expect(await b.blob.text()).toBe('12345');
+  });
+});

@@ -46,13 +46,24 @@ export async function salvar(tabela, registro, { autor }) {
   return reg;
 }
 
+// O iOS perde o arquivo por trás de um Blob/File guardado no IndexedDB quando o app é fechado,
+// então guardamos os bytes. A leitura (antes da transação) evita que ela feche sozinha.
+const paraBytes = async (arquivo) => ({ dados: await arquivo.arrayBuffer(), tipo: arquivo.type || '' });
+
+const comBlob = (b) => {
+  if (!b || b.blob) return b;
+  const { dados, tipo, ...resto } = b;
+  return { ...resto, blob: new Blob([dados], { type: tipo }) };
+};
+
 // Registro + arquivo na mesma transação: se o iOS matar o app, não sobra arquivo órfão.
 export async function salvarComBlob(tabela, registro, arquivo, { autor }) {
   const reg = { ...registro, atualizado_em: new Date().toISOString(), atualizado_por: autor };
+  const bytes = await paraBytes(arquivo);
   const tx = banco.transaction([tabela, 'outbox', 'blobs'], 'readwrite');
   tx.objectStore(tabela).put(reg);
   tx.objectStore('outbox').add({ tabela, registro: reg });
-  tx.objectStore('blobs').put({ id: reg.id, blob: arquivo, recebido: 0 });
+  tx.objectStore('blobs').put({ id: reg.id, ...bytes, recebido: 0 });
   await fimTx(tx);
   eventos.dispatchEvent(new CustomEvent('salvo', { detail: { tabela, id: reg.id } }));
   return reg;
@@ -82,13 +93,14 @@ export async function substituirTudo(dados) {
 }
 
 export const salvarBlob = async (id, blob) => {
+  const bytes = await paraBytes(blob);
   const tx = banco.transaction('blobs', 'readwrite');
-  tx.objectStore('blobs').put({ id, blob, recebido: 0 });
+  tx.objectStore('blobs').put({ id, ...bytes, recebido: 0 });
   await fimTx(tx);
 };
 
-export const blob = (id) => get('blobs', id);
-export const blobs = () => todos('blobs');
+export const blob = async (id) => comBlob(await get('blobs', id));
+export const blobs = async () => (await todos('blobs')).map(comBlob);
 
 export async function marcarRecebido(id, recebido) {
   const tx = banco.transaction('blobs', 'readwrite');

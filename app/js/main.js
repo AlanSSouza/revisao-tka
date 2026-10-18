@@ -26,7 +26,7 @@ const raiz = document.getElementById('raiz');
 let seloSync, alertaIos;
 
 function moldura(abaAtiva) {
-  seloSync = h('button', { class: 'selo-sync', type: 'button', onclick: () => sync.sincronizar(), 'aria-live': 'polite' }, '…');
+  seloSync = h('button', { class: 'selo-sync', type: 'button', onclick: tocarSelo, 'aria-live': 'polite' }, '…');
   alertaIos = h('div', { class: 'alerta-ios', hidden: true });
   const main = h('main', { id: 'tela' });
   const abas = h('nav', { class: 'abas', 'aria-label': 'Navegação principal' },
@@ -71,6 +71,12 @@ function textoSelo(e) {
   if (n) return [`${n} pendentes`];
   if (e.ultimoOk) return ['Sincronizado ' + new Date(e.ultimoOk).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })];
   return ['Sincronizar'];
+}
+
+// Tocar no selo força o envio e mostra o motivo, se algum arquivo não subir.
+async function tocarSelo() {
+  const r = await sync.sincronizar();
+  if (r.erro && r.erro !== 'rede' && r.erro !== 'auth') toast(r.erro, 'erro');
 }
 
 function atualizarSelo() {
