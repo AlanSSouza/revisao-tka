@@ -1,6 +1,9 @@
 // Ficha do equipamento: resumo, histórico de visitas, ocorrências, mídias e dados cadastrais editáveis.
 import * as db from '../db.js';
-import { STATUS, GRAVIDADES, SITUACOES, alteracoesCadastro, formatarNumero, parseNumeroBR, verdadeiro, primeiroValor } from '../modelo.js';
+import {
+  STATUS, GRAVIDADES, SITUACOES, alteracoesCadastro, formatarNumero, parseNumeroBR, verdadeiro, primeiroValor,
+  opcoesDisposicao, preencherPorLotacao,
+} from '../modelo.js';
 import { app, montar, h, toast, placa, dataBR } from '../ui.js';
 import { ativos, galeria, rotulo, iniciarVisita, linkMapa, munckCurto } from './comum.js';
 
@@ -14,9 +17,11 @@ const CAMPOS = [
 const NUMERICOS = ['km_atual', 'ano_fabricacao', 'ano_modelo'];
 // Onde a máquina está alocada: editável à parte, no topo da ficha.
 const DISPOSICAO = [
-  ['cidade', 'Cidade'], ['estado', 'Estado'], ['lotacao', 'Lotação'], ['centro_custo', 'Centro de custo'],
+  ['lotacao', 'Lotação'], ['cidade', 'Cidade'], ['estado', 'Estado'], ['centro_custo', 'Centro de custo'],
   ['setor_veiculo', 'Setor'], ['local_previsto', 'Local previsto'],
 ];
+// Os demais dados cadastrais; a disposição só muda pelo bloco próprio, com as opções da base.
+const CAMPOS_GERAIS = CAMPOS.filter(([c]) => !DISPOSICAO.some(([d]) => d === c));
 
 export async function render(el, { placa: id }) {
   const eq = await db.get('Equipamentos', id);
@@ -85,17 +90,31 @@ export async function render(el, { placa: id }) {
       h('td', {}, String(eq[c] ?? '') || '—',
         c in originais && String(originais[c]) !== String(eq[c] ?? '') ? h('span', { class: 'original' }, `Antes: ${originais[c] === '' ? '(vazio)' : originais[c]}`) : null))))),
     edita ? h('button', { type: 'button', class: 'btn claro bloco-largo', style: 'margin-top:12px', onclick: dispEdicao }, 'Alterar disposição') : null);
-  const dispEdicao = () => {
+  const dispEdicao = async () => {
+    const todos = await db.todos('Equipamentos');
     const entradas = {};
     montar(blocoDisp, h('h2', {}, 'Alterar disposição'),
       DISPOSICAO.map(([c, t]) => {
-        entradas[c] = h('input', { type: 'text', value: String(eq[c] ?? '') });
-        return h('label', { class: 'campo' }, h('span', {}, t), entradas[c]);
+        const atual = String(eq[c] ?? '');
+        if (c === 'local_previsto') {
+          entradas[c] = h('input', { type: 'text', value: atual, placeholder: 'Endereço ou link do mapa' });
+        } else {
+          // Só as opções que já existem na base; o valor atual entra mesmo se estiver fora da lista.
+          const opcoes = opcoesDisposicao(todos, c);
+          if (atual && !opcoes.includes(atual)) opcoes.unshift(atual);
+          entradas[c] = h('select', {}, h('option', { value: '' }, 'Escolha'),
+            opcoes.map((o) => h('option', { value: o, selected: o === atual }, o)));
+        }
+        return h('label', { class: 'campo' }, h('span', {}, t), entradas[c],
+          c === 'lotacao' ? h('small', {}, 'Ao trocar a lotação, cidade, estado e setor são preenchidos sozinhos.') : null);
       }),
       h('div', { class: 'acoes' },
         h('button', { type: 'button', class: 'btn claro', onclick: dispLeitura }, 'Cancelar'),
         h('button', { type: 'button', class: 'btn', onclick: async () => { if (!(await salvarCampos(DISPOSICAO, entradas))) dispLeitura(); } }, 'Salvar disposição')));
-    entradas.cidade.focus();
+    entradas.lotacao.addEventListener('change', () => {
+      for (const [c, v] of Object.entries(preencherPorLotacao(todos, entradas.lotacao.value))) entradas[c].value = v;
+    });
+    entradas.lotacao.focus();
   };
   dispLeitura();
 
@@ -113,17 +132,19 @@ export async function render(el, { placa: id }) {
   };
   const desenharEdicao = () => {
     const entradas = {};
-    const linhas = CAMPOS.map(([c, t]) => {
+    const linhas = CAMPOS_GERAIS.map(([c, t]) => {
       entradas[c] = h('input', { type: 'text', value: c === 'km_atual' ? formatarNumero(eq[c]) : String(eq[c] ?? ''), inputmode: NUMERICOS.includes(c) ? 'decimal' : null });
       return h('label', { class: 'campo' }, h('span', {}, t), entradas[c]);
     });
     montar(blocoDados, h('summary', {}, 'Corrigir dados cadastrais'),
-      h('div', { class: 'conteudo' }, ...linhas,
+      h('div', { class: 'conteudo' },
+        h('p', { class: 'nota', style: 'margin:0 0 12px' }, 'Cidade, lotação, centro de custo e setor mudam no bloco Disposição, no topo da ficha.'),
+        ...linhas,
         h('div', { class: 'acoes' },
           h('button', { type: 'button', class: 'btn claro', onclick: desenharLeitura }, 'Cancelar'),
           h('button', { type: 'button', class: 'btn', onclick: async () => {
             const editado = { ...eq };
-            for (const [c] of CAMPOS) {
+            for (const [c] of CAMPOS_GERAIS) {
               const v = entradas[c].value.trim();
               editado[c] = NUMERICOS.includes(c) ? parseNumeroBR(v) : v;
             }

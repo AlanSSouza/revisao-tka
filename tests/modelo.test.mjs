@@ -119,3 +119,23 @@ describe('linkCoordenadas', () => {
     expect(linkCoordenadas('abc', 1)).toBeNull();
   });
 });
+
+import { opcoesDisposicao, preencherPorLotacao } from '../app/js/modelo.js';
+
+describe('disposição com opções existentes', () => {
+  const eqs = [
+    { id: 'A', cidade: 'SERRINHA', estado: 'Bahia', lotacao: 'SERRINHA - BA', centro_custo: 'CC SERRINHA', setor_veiculo: 'FROTA BAHIA' },
+    { id: 'B', cidade: 'SERRINHA', estado: 'Bahia', lotacao: 'SERRINHA - BA', centro_custo: 'CC FEIRA', setor_veiculo: 'FROTA BAHIA' },
+    { id: 'C', cidade: 'ARACAJU', estado: 'Sergipe', lotacao: 'ARACAJU - FROTA', centro_custo: 'CC ARACAJU', setor_veiculo: 'FROTA SERGIPE' },
+    { id: 'D', cidade: '', estado: 'Sergipe', lotacao: 'ARACAJU - FROTA', centro_custo: 'CC ARACAJU', setor_veiculo: 'FROTA SERGIPE', removido: 'true' },
+  ];
+  it('lista valores distintos, ordenados e sem vazios', () => {
+    expect(opcoesDisposicao(eqs, 'cidade')).toEqual(['ARACAJU', 'SERRINHA']);
+    expect(opcoesDisposicao(eqs, 'centro_custo')).toEqual(['CC ARACAJU', 'CC FEIRA', 'CC SERRINHA']);
+  });
+  it('ao escolher a lotação, devolve só os campos com valor único para ela', () => {
+    expect(preencherPorLotacao(eqs, 'SERRINHA - BA')).toEqual({ cidade: 'SERRINHA', estado: 'Bahia', setor_veiculo: 'FROTA BAHIA' });
+    expect(preencherPorLotacao(eqs, 'ARACAJU - FROTA')).toEqual({ cidade: 'ARACAJU', estado: 'Sergipe', centro_custo: 'CC ARACAJU', setor_veiculo: 'FROTA SERGIPE' });
+    expect(preencherPorLotacao(eqs, 'NOVA')).toEqual({});
+  });
+});

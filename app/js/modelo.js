@@ -204,3 +204,20 @@ export function linkCoordenadas(lat, lng) {
   if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
   return `https://www.google.com/maps/search/?api=1&query=${a.toFixed(6)},${b.toFixed(6)}`;
 }
+
+// Disposição: só valores que já existem na base (cidade, lotação, centro de custo...).
+export function opcoesDisposicao(equipamentos, campo) {
+  const vivos = equipamentos.filter((e) => !verdadeiro(e.removido));
+  return [...new Set(vivos.map((e) => String(e[campo] ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+// A lotação define cidade, estado e setor (e o centro de custo quando só existe um para ela).
+export function preencherPorLotacao(equipamentos, lotacao) {
+  const mesmos = equipamentos.filter((e) => !verdadeiro(e.removido) && e.lotacao === lotacao);
+  const out = {};
+  for (const c of ['cidade', 'estado', 'centro_custo', 'setor_veiculo']) {
+    const v = opcoesDisposicao(mesmos, c);
+    if (v.length === 1) out[c] = v[0];
+  }
+  return out;
+}
