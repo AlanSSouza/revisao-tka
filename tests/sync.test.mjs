@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as db from '../app/js/db.js';
-import { sincronizar, eventos } from '../app/js/sync.js';
+import { sincronizar, eventos, trocarSenha } from '../app/js/sync.js';
 import { PEDACO } from '../app/js/config.js';
 
 let n = 0;
@@ -116,5 +116,34 @@ describe('sincronizar', () => {
     handler = (req) => (req.acao === 'pull' ? { ok: true, dados: { Equipamentos: [{ id: 'TSN5J65' }] } } : { ok: true });
     await sincronizar();
     expect((await db.todos('Equipamentos')).map((e) => e.id)).toEqual(['TSN5J65']);
+  });
+
+  it('mídia com erro não impede as outras nem o pull', async () => {
+    for (const id of ['m1', 'm2']) {
+      await db.salvar('Midias', { id, placa: 'A', mime: 'image/jpeg' }, { autor: 'A' });
+      await db.salvarBlob(id, new Blob(['abc']));
+    }
+    handler = (req) => {
+      if (req.acao === 'uploadInicio' && req.midia.id === 'm1') return { ok: false, erro: 'interno', msg: 'Drive 403' };
+      if (req.acao === 'uploadInicio') return { ok: true, recebido: 0 };
+      if (req.acao === 'uploadPedaco') return { ok: true, concluido: true, link: 'L2', drive_id: 'D2' };
+      if (req.acao === 'pull') return { ok: true, dados: { Equipamentos: [{ id: 'X' }] } };
+      return { ok: true, gravados: 1 };
+    };
+    const r = await sincronizar();
+    expect((await db.get('Midias', 'm2')).link).toBe('L2');
+    expect(await db.blob('m1')).toBeTruthy();
+    expect((await db.todos('Equipamentos')).length).toBe(1);
+    expect(r.erro).toContain('Drive 403');
+  });
+
+  it('trocarSenha valida e passa a usar a nova senha', async () => {
+    handler = (req) => (req.senha === 'nova' ? { ok: true, papel: 'registro', gravados: 1, dados: {} } : { ok: false, erro: 'auth' });
+    await expect(trocarSenha('errada')).rejects.toThrow();
+    await trocarSenha('nova');
+    expect((await db.meta('sessao')).senha).toBe('nova');
+    await db.salvar('Visitas', { id: 'v1' }, { autor: 'A' });
+    await sincronizar();
+    expect(await db.outbox()).toEqual([]);
   });
 });

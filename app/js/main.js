@@ -89,7 +89,27 @@ function atualizarSelo() {
 }
 
 sync.eventos.addEventListener('sync:estado', (ev) => { ultimoEstado = { ...ultimoEstado, ...ev.detail }; atualizarSelo(); });
-sync.eventos.addEventListener('sync:auth', () => toast('Senha recusada pelo servidor. Saia e entre de novo com a senha atual.', 'erro', { ms: 8000 }));
+let pedindoSenha = false;
+sync.eventos.addEventListener('sync:auth', async () => {
+  if (pedindoSenha) return;
+  pedindoSenha = true;
+  const { modal, campo } = await import('./ui.js');
+  const senha = h('input', { type: 'password', autocomplete: 'current-password' });
+  const ok = await modal('A senha de acesso mudou', h('div', {},
+    h('p', {}, 'Os registros pendentes estão guardados no aparelho. Digite a senha atual para continuar enviando.'),
+    campo('Senha atual', senha)), [
+    { t: 'Depois', classe: 'claro', valor: () => false }, { t: 'Continuar', valor: () => true }]);
+  pedindoSenha = false;
+  if (!ok || !senha.value) return;
+  try {
+    await sync.trocarSenha(senha.value);
+    app.sessao = await db.meta('sessao');
+    toast('Senha atualizada. Enviando pendentes…', 'ok');
+    sync.sincronizar();
+  } catch (e) {
+    toast('Senha não aceita. Confira com o responsável pelo app.', 'erro');
+  }
+});
 addEventListener('online', atualizarSelo);
 addEventListener('offline', atualizarSelo);
 db.eventos.addEventListener('salvo', async () => { ultimoEstado = { ...ultimoEstado, pendentes: await sync.pendentes() }; atualizarSelo(); });
@@ -132,8 +152,12 @@ function registrarSW() {
       w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) avisar(w); });
     });
   }).catch(() => {});
+  // Só recarrega quando uma versão nova substitui outra (não na primeira instalação).
+  const tinhaControle = !!navigator.serviceWorker.controller;
   let recarregou = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recarregou) { recarregou = true; location.reload(); } });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (tinhaControle && !recarregou) { recarregou = true; location.reload(); }
+  });
 }
 
 async function iniciar() {

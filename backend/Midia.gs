@@ -112,6 +112,7 @@ function acaoUploadPedaco(req) {
     method: 'put',
     headers: { 'Content-Range': 'bytes ' + st.recebido + '-' + fim + '/' + st.total },
     payload: bytes,
+    followRedirects: false,
     muteHttpExceptions: true
   });
   return tratarRespostaSessao(req.id, st, resp);
@@ -126,6 +127,7 @@ function acaoUploadStatus(req) {
   var resp = UrlFetchApp.fetch(st.sessao, {
     method: 'put',
     headers: { 'Content-Range': 'bytes */' + st.total },
+    followRedirects: false,
     muteHttpExceptions: true
   });
   return tratarRespostaSessao(req.id, st, resp);

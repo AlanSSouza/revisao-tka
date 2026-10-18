@@ -3,26 +3,29 @@ import * as db from '../db.js';
 import { capturar, urlMiniatura } from '../midia.js';
 import { app, montar, h, icone, toast, debounce } from '../ui.js';
 import { verdadeiro } from '../modelo.js';
+import { criarRascunho } from '../rascunho.js';
 
 export const ativos = (lista) => lista.filter((r) => !verdadeiro(r.removido));
 
 export const rotulo = (lista, v) => lista.find((o) => o.v === v)?.t || v || '';
 
-// Salva o registro a cada alteração (debounce) e garante gravação ao sair da tela.
+// Salva o registro a cada alteração e ao sair da tela/app; consulta nunca grava.
 export function autosave(tabela, registro, ms = 800) {
-  const estado = { dados: { ...registro } };
-  const gravar = debounce(() => db.salvar(tabela, estado.dados, { autor: app.sessao.autor }), ms);
-  const flush = () => gravar.agora();
-  addEventListener('hashchange', flush, { once: true });
-  addEventListener('pagehide', flush, { once: true });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); }, { once: true });
-  estado.set = (campo, valor) => {
-    if (estado.dados[campo] === valor) return;
-    estado.dados[campo] = valor;
-    gravar();
+  const r = criarRascunho(registro, {
+    ms, ativo: app.podeEditar(),
+    salvar: (dados) => db.salvar(tabela, dados, { autor: app.sessao.autor }),
+  });
+  const aoOcultar = () => { if (document.visibilityState === 'hidden') r.flush(); };
+  const aoSair = () => {
+    r.flush();
+    removeEventListener('hashchange', aoSair);
+    removeEventListener('pagehide', r.flush);
+    document.removeEventListener('visibilitychange', aoOcultar);
   };
-  estado.flush = flush;
-  return estado;
+  addEventListener('hashchange', aoSair);
+  addEventListener('pagehide', r.flush);
+  document.addEventListener('visibilitychange', aoOcultar);
+  return r;
 }
 
 export async function galeria(midias) {

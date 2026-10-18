@@ -68,3 +68,12 @@ describe('limparTudo', () => {
     expect(await db.meta('ultimo_nome')).toBe('Alan');
   });
 });
+
+describe('salvarComBlob', () => {
+  it('grava registro, outbox e blob juntos', async () => {
+    await db.salvarComBlob('Midias', { id: 'm9', placa: 'A' }, new Blob(['xy']), { autor: 'A' });
+    expect((await db.get('Midias', 'm9')).placa).toBe('A');
+    expect(await (await db.blob('m9')).blob.text()).toBe('xy');
+    expect((await db.outbox()).length).toBe(1);
+  });
+});

@@ -1,6 +1,6 @@
 // Sincronização: envia a outbox, sobe mídias em pedaços (retomando de onde parou) e baixa a base.
 import * as db from './db.js';
-import { chamar, ErroAuth, ErroRede } from './api.js';
+import { chamar, entrar, ErroAuth, ErroRede } from './api.js';
 import { PEDACO } from './config.js';
 
 export const eventos = new EventTarget();
@@ -75,13 +75,20 @@ async function enviarMidia(m) {
   await db.removerBlob(m.id);
 }
 
+// Uma mídia com problema não trava as demais; falta de rede ou senha interrompem tudo.
 async function enviarMidias() {
-  const bl = await db.blobs();
-  for (const b of bl) {
+  const erros = [];
+  for (const b of await db.blobs()) {
     const m = await db.get('Midias', b.id);
-    if (m && !m.link) await enviarMidia(m);
-    else if (m?.link) await db.removerBlob(b.id);
+    try {
+      if (m && !m.link) await enviarMidia(m);
+      else if (m?.link) await db.removerBlob(b.id);
+    } catch (e) {
+      if (e instanceof ErroRede || e instanceof ErroAuth) throw e;
+      erros.push(`${m?.nome_arquivo || b.id}: ${e.message}`);
+    }
   }
+  return erros;
 }
 
 async function executar() {
@@ -89,9 +96,10 @@ async function executar() {
   ultimoErro = null;
   try {
     const sessao = await db.meta('sessao');
+    let errosMidia = [];
     if (sessao?.papel === 'registro') {
       await enviarOutbox();
-      await enviarMidias();
+      errosMidia = await enviarMidias();
     }
     const r = await chamar('pull');
     const dados = r.dados || {};
@@ -100,6 +108,7 @@ async function executar() {
     await db.substituirTudo(dados);
     ultimoOk = new Date().toISOString();
     await db.setMeta('ultimo_pull', ultimoOk);
+    if (errosMidia.length) ultimoErro = 'Falha ao enviar ' + errosMidia.join('; ');
   } catch (e) {
     if (e instanceof ErroAuth) {
       ultimoErro = 'auth';
@@ -113,6 +122,14 @@ async function executar() {
   const resultado = { emAndamento: false, ultimoOk, erro: ultimoErro, pendentes: await pendentes() };
   emitir('sync:estado', resultado);
   return resultado;
+}
+
+// Depois de a senha mudar no servidor: valida a nova e continua com os pendentes intactos.
+export async function trocarSenha(senha) {
+  const sessao = await db.meta('sessao');
+  const r = await entrar(sessao.autor, senha);
+  await db.setMeta('sessao', { ...sessao, senha, papel: r.papel });
+  return r.papel;
 }
 
 export function sincronizar() {

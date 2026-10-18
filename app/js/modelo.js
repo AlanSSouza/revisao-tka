@@ -125,3 +125,9 @@ export function alteracoesCadastro(original, editado, autor) {
       atualizado_por: autor,
     }));
 }
+
+// Primeiro valor preenchido (ignora '', null e undefined; mantém zero).
+export function primeiroValor(...valores) {
+  const v = valores.find((x) => x !== '' && x !== null && x !== undefined);
+  return v === undefined ? null : v;
+}

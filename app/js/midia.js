@@ -103,8 +103,7 @@ async function registrar(file, ctx) {
     mime: blob.type || file.type || 'application/octet-stream', tamanho: blob.size,
     drive_id: '', link: '', criado_em: new Date().toISOString(), enviado_em: '',
   };
-  await db.salvarBlob(id, blob);
-  const salvo = await db.salvar('Midias', midia, { autor: ctx.autor });
+  const salvo = await db.salvarComBlob('Midias', midia, blob, { autor: ctx.autor });
   return { midia: salvo, aviso };
 }
 

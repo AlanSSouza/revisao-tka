@@ -4,16 +4,19 @@ import { readFileSync } from 'node:fs';
 
 function criarSheet(nome) {
   const s = {
-    nome, data: [],
+    nome, data: [], maxRows: 1000,
     getName: () => s.nome,
     getLastRow: () => s.data.length,
     getLastColumn: () => Math.max(0, ...s.data.map((r) => r.length)),
     getDataRange: () => s.getRange(1, 1, Math.max(1, s.data.length), Math.max(1, s.getLastColumn())),
     appendRow: (row) => { s.data.push([...row]); return s; },
-    getMaxRows: () => 1000,
+    getMaxRows: () => s.maxRows,
+    insertRowsAfter: (apos, n) => { s.maxRows += n; },
     getMaxColumns: () => Math.max(26, s.getLastColumn()),
     deleteRows: (ini, n) => { s.data.splice(ini - 1, n); },
-    getRange: (r, c, nr = 1, nc = 1) => ({
+    getRange: (r, c, nr = 1, nc = 1) => {
+      if (r - 1 + nr > s.maxRows) throw new Error('As coordenadas do intervalo estão fora das dimensões da página.');
+      return {
       getValues: () => Array.from({ length: nr }, (_, i) =>
         Array.from({ length: nc }, (_, j) => (s.data[r - 1 + i] || [])[c - 1 + j] ?? '')),
       setValues: (vals) => {
@@ -26,7 +29,8 @@ function criarSheet(nome) {
       setNumberFormat: () => {},
       setFontWeight: () => {},
       clearContent: () => { for (let i = 0; i < nr; i++) if (s.data[r - 1 + i]) s.data[r - 1 + i] = []; },
-    }),
+    };
+    },
     setFrozenRows: () => {},
   };
   return s;

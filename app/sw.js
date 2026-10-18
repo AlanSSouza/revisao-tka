@@ -3,7 +3,7 @@ const VERSAO = 'v1';
 const CACHE = 'revisao-tka-' + VERSAO;
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/main.js', 'js/ui.js', 'js/db.js', 'js/modelo.js', 'js/api.js', 'js/sync.js', 'js/midia.js', 'js/config.js',
+  'js/main.js', 'js/ui.js', 'js/db.js', 'js/modelo.js', 'js/api.js', 'js/sync.js', 'js/midia.js', 'js/config.js', 'js/rascunho.js',
   'js/telas/entrada.js', 'js/telas/hoje.js', 'js/telas/planejar.js', 'js/telas/parque.js',
   'js/telas/equipamento.js', 'js/telas/visita.js', 'js/telas/ocorrencia.js', 'js/telas/treinamento.js', 'js/telas/comum.js',
   'assets/logo.png', 'assets/gptw.png', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/apple-touch-icon.png',

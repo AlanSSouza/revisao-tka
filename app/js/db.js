@@ -46,6 +46,18 @@ export async function salvar(tabela, registro, { autor }) {
   return reg;
 }
 
+// Registro + arquivo na mesma transação: se o iOS matar o app, não sobra arquivo órfão.
+export async function salvarComBlob(tabela, registro, arquivo, { autor }) {
+  const reg = { ...registro, atualizado_em: new Date().toISOString(), atualizado_por: autor };
+  const tx = banco.transaction([tabela, 'outbox', 'blobs'], 'readwrite');
+  tx.objectStore(tabela).put(reg);
+  tx.objectStore('outbox').add({ tabela, registro: reg });
+  tx.objectStore('blobs').put({ id: reg.id, blob: arquivo, recebido: 0 });
+  await fimTx(tx);
+  eventos.dispatchEvent(new CustomEvent('salvo', { detail: { tabela, id: reg.id } }));
+  return reg;
+}
+
 export const outbox = () => todos('outbox');
 
 export async function removerOutbox(seqs) {

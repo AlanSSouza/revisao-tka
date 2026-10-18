@@ -1,6 +1,6 @@
 // Ficha do equipamento: resumo, histórico de visitas, ocorrências, mídias e dados cadastrais editáveis.
 import * as db from '../db.js';
-import { STATUS, GRAVIDADES, SITUACOES, alteracoesCadastro, formatarNumero, parseNumeroBR, verdadeiro } from '../modelo.js';
+import { STATUS, GRAVIDADES, SITUACOES, alteracoesCadastro, formatarNumero, parseNumeroBR, verdadeiro, primeiroValor } from '../modelo.js';
 import { app, montar, h, toast, placa, dataBR } from '../ui.js';
 import { ativos, galeria, rotulo, iniciarVisita, linkMapa, munckCurto } from './comum.js';
 
@@ -32,7 +32,7 @@ export async function render(el, { placa: id }) {
     if (!(a.campo in originais)) originais[a.campo] = a.valor_original;
   }
 
-  const kmAtual = eq.km_atual_campo ?? eq.km_atual;
+  const kmAtual = primeiroValor(eq.km_atual_campo, eq.km_atual);
   const mapa = linkMapa(eq.local_previsto);
   const resumo = h('section', { class: 'bloco' },
     h('table', { class: 'tabela-dados' }, h('tbody', {},

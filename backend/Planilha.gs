@@ -48,13 +48,36 @@ function setup() {
     sh.getRange(1, 1, 1, novo.length).setValues([novo]);
     sh.getRange(1, 1, 1, novo.length).setFontWeight('bold');
     sh.setFrozenRows(1);
-    novo.forEach(function (c, i) {
-      if (NUMERICOS.indexOf(c) < 0) sh.getRange(2, i + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@');
-    });
+    formatarTexto(sh, novo, 2, sh.getMaxRows() - 1);
   });
   ss.getSheets().forEach(function (sh) {
     if (!TABELAS[sh.getName()] && sh.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(sh);
   });
+}
+
+// Colunas não numéricas como texto puro nas linhas indicadas.
+function formatarTexto(sh, cab, linhaIni, n) {
+  cab.forEach(function (c, i) {
+    if (NUMERICOS.indexOf(c) < 0) sh.getRange(linhaIni, i + 1, n, 1).setNumberFormat('@');
+  });
+}
+
+// Garante linhas suficientes na aba (o Google recusa escrever além da última linha existente).
+function garantirLinhas(sh, cab, total) {
+  var max = sh.getMaxRows();
+  if (total <= max) return;
+  var extra = total - max + 500;
+  sh.insertRowsAfter(max, extra);
+  formatarTexto(sh, cab, max + 1, extra);
+}
+
+// Campos que, uma vez preenchidos pelo servidor, não podem ser apagados por um envio antigo do app.
+var PROTEGIDOS = ['link', 'drive_id', 'enviado_em'];
+
+function valorFinal(campo, novo, atual) {
+  var v = valorGravado(novo);
+  if (PROTEGIDOS.indexOf(campo) >= 0 && v === '' && atual !== '' && atual != null) return atual;
+  return v;
 }
 
 function aba(nome) {
@@ -106,14 +129,17 @@ function upsertRegistros(nome, registros) {
         novos.push(linhaNova);
       } else if (idx < 0) {
         var pendente = novos[-1 - idx];
-        cab.forEach(function (c, j) { if (c in reg) pendente[j] = valorGravado(reg[c]); });
+        cab.forEach(function (c, j) { if (c in reg) pendente[j] = valorFinal(c, reg[c], pendente[j]); });
       } else {
-        var linha = cab.map(function (c, j) { return c in reg ? valorGravado(reg[c]) : vals[idx][j]; });
+        var linha = cab.map(function (c, j) { return c in reg ? valorFinal(c, reg[c], vals[idx][j]) : vals[idx][j]; });
         sh.getRange(idx + 1, 1, 1, cab.length).setValues([linha]);
         vals[idx] = linha;
       }
     });
-    if (novos.length) sh.getRange(vals.length + 1, 1, novos.length, cab.length).setValues(novos);
+    if (novos.length) {
+      garantirLinhas(sh, cab, vals.length + novos.length);
+      sh.getRange(vals.length + 1, 1, novos.length, cab.length).setValues(novos);
+    }
     return registros.length;
   } finally {
     lock.releaseLock();

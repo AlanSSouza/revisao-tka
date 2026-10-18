@@ -27,7 +27,10 @@ export async function render(raiz) {
         await db.setMeta('sessao', app.sessao);
         await db.setMeta('ultimo_nome', autor);
         botao.textContent = 'Baixando a base de equipamentos…';
-        await sync.sincronizar();
+        const res = await sync.sincronizar();
+        if (res.erro && !(await db.todos('Equipamentos')).length) {
+          throw new Error(res.erro === 'rede' ? 'A base não foi baixada: conexão caiu. Tente de novo.' : 'A base não foi baixada: ' + res.erro);
+        }
         sync.agendar();
         app.ir('#/hoje');
       } catch (ex) {

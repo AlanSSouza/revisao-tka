@@ -56,3 +56,10 @@ describe('fábricas', () => {
   });
   it('uuid único', () => expect(uuid()).not.toBe(uuid()));
 });
+
+import { primeiroValor } from '../app/js/modelo.js';
+describe('primeiroValor', () => {
+  it('ignora vazio e null', () => expect(primeiroValor('', null, 9334)).toBe(9334));
+  it('mantém zero', () => expect(primeiroValor(0, 5)).toBe(0));
+  it('tudo vazio dá null', () => expect(primeiroValor('', undefined)).toBeNull());
+});

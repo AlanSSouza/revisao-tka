@@ -34,9 +34,10 @@ Leva cerca de 15 minutos. Tudo fica na conta Google **alanssouza.23@gmail.com**.
 
 > Se alterar o código depois: **Implantar → Gerenciar implantações → editar (lápis) → Versão: Nova versão → Implantar**. A URL continua a mesma.
 
-## 5. Carga inicial (feita pelo Claude)
+## 5. Ligar o app à ponte e carga inicial (feita pelo Claude)
 
-Com a URL e a `SENHA_REGISTRO`:
+1. A URL do passo 4 vai em `app/js/config.js` (`API_URL`). Sem isso o app mostra "Sem conexão" no login.
+2. Com a URL e a `SENHA_REGISTRO`:
 
 ```
 node tools/enviar-seed.mjs <URL> <SENHA_REGISTRO>
@@ -59,7 +60,7 @@ Carrega as 55 máquinas e a lista de funcionários ativos (somente matrícula, n
 5. Feche o app pelo multitarefa e abra de novo: tudo tem que estar lá.
 6. Desligue o modo avião. O selo no topo deve mudar para **Sincronizado hh:mm**.
 7. Confira na planilha e na pasta `Revisão TKA/<placa>/<data>/`; abra um arquivo pelo link numa aba anônima.
-8. Depois do teste, apague as linhas da visita de teste na planilha e a pasta da data.
+8. Depois do teste, apague na planilha as linhas da visita de teste (abas Visitas, Equipe, Ocorrencias, Midias, Alteracoes) e a pasta da data. Na aba Equipamentos, limpe `serie_munck`, `km_atual_campo` e `horimetro_atual` da placa usada no teste.
 
 ## Dia a dia
 

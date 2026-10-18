@@ -53,3 +53,19 @@ describe('backend', () => {
     expect(post(ctx, { acao: 'pull', ...R }).dados.Funcionarios.map((f) => f.id)).toEqual(['3']);
   });
 });
+
+describe('limites e proteção', () => {
+  it('seed de 1107 funcionários passa da linha 1000', () => {
+    const regs = Array.from({ length: 1107 }, (_, i) => ({ id: String(i + 1), nome: 'P' + i }));
+    for (let i = 0; i < regs.length; i += 500) {
+      const r = post(ctx, { acao: 'seed', ...R, tabela: 'Funcionarios', registros: regs.slice(i, i + 500), substituir: i === 0 });
+      expect(r.ok).toBe(true);
+    }
+    expect(post(ctx, { acao: 'pull', ...R }).dados.Funcionarios.length).toBe(1107);
+  });
+  it('upsert sem link não apaga link já gravado da mídia', () => {
+    post(ctx, { acao: 'upsert', ...R, tabela: 'Midias', registros: [{ id: 'm1', link: 'L', drive_id: 'D', enviado_em: 'E' }] });
+    post(ctx, { acao: 'upsert', ...R, tabela: 'Midias', registros: [{ id: 'm1', link: '', drive_id: '', enviado_em: '', legenda: 'x' }] });
+    expect(post(ctx, { acao: 'pull', ...R }).dados.Midias[0]).toMatchObject({ link: 'L', drive_id: 'D', enviado_em: 'E', legenda: 'x' });
+  });
+});

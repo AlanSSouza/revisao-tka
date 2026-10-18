@@ -2,7 +2,7 @@
 import * as db from '../db.js';
 import {
   STATUS, PAPEIS, GRAVIDADES, SITUACOES, parseNumeroBR, alertaKm, formatarNumero, novaOcorrencia, novoMembro,
-  alteracoesCadastro, hojeLocal, verdadeiro, uuid,
+  alteracoesCadastro, hojeLocal, verdadeiro, uuid, primeiroValor,
 } from '../modelo.js';
 import { app, montar, h, chips, campo, toast, modal, confirmar, placa, dataBR, icone } from '../ui.js';
 import { autosave, ativos, galeria, botoesMidia, buscaPessoa, rotulo, mensagemConsulta } from './comum.js';
@@ -39,7 +39,7 @@ export async function render(el, { id }) {
     chips(STATUS, vis.dados.status, (x) => set('status', x), { desabilitado: !edita }));
 
   // Leituras
-  const kmBase = eq.km_atual_campo ?? eq.km_atual;
+  const kmBase = primeiroValor(eq.km_atual_campo, eq.km_atual);
   const avisoKm = h('small', { class: 'aviso', hidden: true });
   const km = h('input', { type: 'text', inputmode: 'decimal', value: formatarNumero(vis.dados.km), disabled: !edita });
   const verificarKm = () => {
