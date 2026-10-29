@@ -348,8 +348,7 @@ export async function pdfGeral(r, { autor, filtro } = {}) {
   f.titulo2('Situação por equipamento');
   f.tabela([{ t: 'Placa', w: 15 }, { t: 'Cidade', w: 17 }, { t: 'Modelo / chassi', w: 30 }, { t: 'Série Munck', w: 16 }, { t: 'KM', w: 12, dir: true }, { t: 'Horím.', w: 9, dir: true },
     { t: 'Última visita', w: 14 }, { t: 'Status', w: 14 }, { t: 'Domínio', w: 18 }, { t: 'Ocorr.', w: 8, dir: true }, { t: 'Abertas', w: 9, dir: true }],
-  r.linhas.map((l) => [l.placa, l.cidade, [l.modelo, l.chassi].filter(Boolean).join('
-') || '-', l.serie || '-', num(l.km), num(l.horimetro), l.ultimaVisita ? dataHora(l.ultimaVisita, false) : 'Não visitada',
+  r.linhas.map((l) => [l.placa, l.cidade, [l.modelo, l.chassi].filter(Boolean).join('\n') || '-', l.serie || '-', num(l.km), num(l.horimetro), l.ultimaVisita ? dataHora(l.ultimaVisita, false) : 'Não visitada',
     rotulo(STATUS, l.status) || '-', rotulo(DOMINIOS, l.dominio) || '-', l.ocorrencias, l.abertas]), { tam: 7.5 });
   f.rodapes(autor);
   return f.doc.output('blob');
