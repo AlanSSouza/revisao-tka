@@ -113,6 +113,7 @@ export function resumoGeral(d, hoje) {
     const oc = p.ocorrencias.filter((o) => o.placa === e.id);
     return {
       placa: e.id, cidade: e.cidade || '', serie: e.serie_munck || '',
+      modelo: e.des_mod_veic || e.marca_modelo || '', chassi: e.cod_chassi || '',
       km: primeiroValor(e.km_atual_campo, e.km_atual), horimetro: primeiroValor(e.horimetro_atual),
       status: p.ultima[e.id]?.status || '', ultimaVisita: p.ultima[e.id]?.inicio || '',
       visitas: p.concluidas.filter((v) => v.placa === e.id).length,

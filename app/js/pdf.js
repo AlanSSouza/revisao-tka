@@ -346,9 +346,10 @@ export async function pdfGeral(r, { autor, filtro } = {}) {
   f.titulo2('Treinamentos');
   f.paragrafo(`${r.treinamentos} treinamento(s) no local, ${r.pessoasTreinadas} pessoa(s) treinada(s). ${r.pessoasEquipe} pessoa(s) registradas nas equipes.`);
   f.titulo2('Situação por equipamento');
-  f.tabela([{ t: 'Placa', w: 15 }, { t: 'Cidade', w: 20 }, { t: 'Série Munck', w: 16 }, { t: 'KM', w: 12, dir: true }, { t: 'Horím.', w: 9, dir: true },
+  f.tabela([{ t: 'Placa', w: 15 }, { t: 'Cidade', w: 17 }, { t: 'Modelo / chassi', w: 30 }, { t: 'Série Munck', w: 16 }, { t: 'KM', w: 12, dir: true }, { t: 'Horím.', w: 9, dir: true },
     { t: 'Última visita', w: 14 }, { t: 'Status', w: 14 }, { t: 'Domínio', w: 18 }, { t: 'Ocorr.', w: 8, dir: true }, { t: 'Abertas', w: 9, dir: true }],
-  r.linhas.map((l) => [l.placa, l.cidade, l.serie || '-', num(l.km), num(l.horimetro), l.ultimaVisita ? dataHora(l.ultimaVisita, false) : 'Não visitada',
+  r.linhas.map((l) => [l.placa, l.cidade, [l.modelo, l.chassi].filter(Boolean).join('
+') || '-', l.serie || '-', num(l.km), num(l.horimetro), l.ultimaVisita ? dataHora(l.ultimaVisita, false) : 'Não visitada',
     rotulo(STATUS, l.status) || '-', rotulo(DOMINIOS, l.dominio) || '-', l.ocorrencias, l.abertas]), { tam: 7.5 });
   f.rodapes(autor);
   return f.doc.output('blob');
@@ -359,9 +360,10 @@ export async function pdfPlaca(r, { autor } = {}) {
   const f = await preparar(`Revisão Guindautos TKA - ${e.id}`);
   f.titulo1(`Relatório do equipamento ${e.id}`, [e.marca_modelo || e.des_mod_veic, e.status_veiculo, e.cidade].filter(Boolean).join(' - '));
   f.campos([
+    ['Modelo', e.marca_modelo || e.des_mod_veic], ['Chassi', e.cod_chassi],
     ['Nº de série do Munck', e.serie_munck || 'Não registrado'], ['Status na última visita', rotulo(STATUS, r.status) || 'Não visitado'],
     ['KM', num(r.km)], ['Horímetro', num(r.horimetro, ' h')],
-    ['Cidade', e.cidade], ['Lotação', e.lotacao], ['Centro de custo', e.centro_custo], ['Chassi', e.cod_chassi],
+    ['Cidade', e.cidade], ['Lotação', e.lotacao], ['Centro de custo', e.centro_custo],
     ['Renavam', e.cod_renavam], ['Ano fabricação/modelo', [e.ano_fabricacao, e.ano_modelo].filter(Boolean).join('/')],
   ]);
   f.indicadores([

@@ -142,6 +142,6 @@ export async function render(el) {
         placa(l.placa),
         h('div', { class: 'info' },
           h('div', { class: 'titulo' }, l.ultimaVisita ? [h('span', { class: 'ponto ' + l.status }), ` ${rotulo(STATUS, l.status) || 'Visitada'} · ${dataBR(l.ultimaVisita)}`] : 'Ainda não visitada'),
-          h('div', { class: 'sub' }, [l.cidade, l.km != null ? `KM ${formatarNumero(l.km)}` : '', l.dominio ? rotulo(DOMINIOS, l.dominio) : '', l.ocorrencias ? `${l.ocorrencias} ocorrência(s)` : '',
+          h('div', { class: 'sub' }, [l.cidade, l.modelo, l.chassi ? `chassi ${l.chassi}` : '', l.km != null ? `KM ${formatarNumero(l.km)}` : '', l.dominio ? rotulo(DOMINIOS, l.dominio) : '', l.ocorrencias ? `${l.ocorrencias} ocorrência(s)` : '',
             l.abertas ? `${l.abertas} em aberto` : ''].filter(Boolean).join(' · ')))))))));
 }

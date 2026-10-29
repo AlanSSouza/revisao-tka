@@ -67,6 +67,7 @@ export async function render(el, { placa: id }) {
         h('div', {}, h('h1', { style: 'font-size:20px' }, 'Relatório do equipamento'), h('p', {}, `${munckCurto(e)} · ${e.cidade}`)))),
     h('section', { class: 'bloco' },
       h('table', { class: 'tabela-dados' }, h('tbody', {},
+        linha('Modelo', e.marca_modelo || e.des_mod_veic), linha('Chassi', e.cod_chassi),
         linha('Nº de série do Munck', e.serie_munck || 'Não registrado'), linha('Status na última visita', rotulo(STATUS, r.status) || 'Não visitado'),
         linha('KM', num(r.km)), linha('Horímetro', num(r.horimetro, ' h')), linha('Lotação', e.lotacao), linha('Centro de custo', e.centro_custo))),
       h('div', { style: 'height:12px' }), botaoPdf),

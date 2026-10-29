@@ -3,8 +3,8 @@ import { resumoGeral, relatorioPlaca, diasEntre } from '../app/js/relatorio.js';
 
 const base = () => ({
   Equipamentos: [
-    { id: 'AAA1A11', cidade: 'Itajubá', serie_munck: 'S1', km_atual: 1000, km_atual_campo: 1200, horimetro_atual: 50 },
-    { id: 'BBB2B22', cidade: 'Itajubá', serie_munck: '', km_atual: 2000, km_atual_campo: '', horimetro_atual: '' },
+    { id: 'AAA1A11', cidade: 'Itajubá', serie_munck: 'S1', marca_modelo: 'Mercedes-Benz ATEGO 1719 CE', des_mod_veic: 'ATEGO 1719 CE', cod_chassi: '9BM951501SB396861', km_atual: 1000, km_atual_campo: 1200, horimetro_atual: 50 },
+    { id: 'BBB2B22', cidade: 'Itajubá', serie_munck: '', des_mod_veic: 'ATEGO 1719 CE', km_atual: 2000, km_atual_campo: '', horimetro_atual: '' },
     { id: 'CCC3C33', cidade: 'Lavras', serie_munck: '', km_atual: 3000 },
   ],
   Visitas: [
@@ -95,7 +95,8 @@ describe('resumoGeral', () => {
     expect(a).toMatchObject({ cidade: 'Itajubá', serie: 'S1', km: 1200, horimetro: 50, status: 'parado', visitas: 2, ocorrencias: 2, abertas: 1 });
     expect(a.ultimaVisita).toBe('2026-10-22T10:00:00Z');
     const b = r.linhas.find((l) => l.placa === 'BBB2B22');
-    expect(b).toMatchObject({ km: 2000, status: '', visitas: 0, abertas: 1 });
+    expect(a).toMatchObject({ modelo: 'ATEGO 1719 CE', chassi: '9BM951501SB396861' });
+    expect(b).toMatchObject({ modelo: 'ATEGO 1719 CE', chassi: '', km: 2000, status: '', visitas: 0, abertas: 1 });
   });
 });
 
